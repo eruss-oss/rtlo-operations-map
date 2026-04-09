@@ -654,8 +654,8 @@ const SITEONE_STORES = SITEONE_DATA_PLACEHOLDER;
 const SW_STORES = SPRINKLERWORLD_DATA_PLACEHOLDER;
 const ACE_STORES = ACE_DATA_PLACEHOLDER;
 
-// Live data is fetched from shared CDN data.json (updated by cron every 30 min)
-let DATA_JSON_URL = 'DATA_JSON_URL_PLACEHOLDER';
+// Live data is fetched from the same-origin /data endpoint to avoid CDN CORS issues
+let DATA_JSON_URL = 'https://map.inhousekru.com/data';
 const REFRESH_SERVER_URL = 'https://map.inhousekru.com';
 let JT_JOBS = [];
 let GHL_OPPS = [];

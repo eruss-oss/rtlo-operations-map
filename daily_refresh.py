@@ -891,21 +891,22 @@ def main():
     data_url = upload_data_json()
     if data_url:
         log(f'Live data URL: {data_url}')
-        # Inject the data URL into map.html so the shell knows where to poll
+        # Copy map.html to /tmp/map.html so the Flask server can serve it at /
+        # DATA_JSON_URL is now hardcoded to /data endpoint (same-origin, no CORS issues)
         try:
             with open(f'{WORK_DIR}/map.html', 'r') as f:
                 mhtml = f.read()
-            mhtml = mhtml.replace('DATA_JSON_URL_PLACEHOLDER', data_url)
-            with open(f'{WORK_DIR}/map.html', 'w') as f:
-                f.write(mhtml)
-            log('data.json URL injected into map.html')
-            # Also copy to /tmp/map.html so the Flask server can serve it at /
+            # Replace placeholder if still present (legacy fallback)
+            if 'DATA_JSON_URL_PLACEHOLDER' in mhtml:
+                mhtml = mhtml.replace('DATA_JSON_URL_PLACEHOLDER', 'https://map.inhousekru.com/data')
+                with open(f'{WORK_DIR}/map.html', 'w') as f:
+                    f.write(mhtml)
             map_html_file = os.environ.get('MAP_HTML_FILE', '/tmp/map.html')
             with open(map_html_file, 'w') as f:
                 f.write(mhtml)
             log(f'map.html copied to {map_html_file} for server-side serving')
         except Exception as e:
-            log(f'Could not inject data URL into map.html: {e}')
+            log(f'Could not copy map.html: {e}')
 
     # Build and send email
     now = datetime.now()

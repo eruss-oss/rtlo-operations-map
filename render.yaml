@@ -3,7 +3,7 @@ services:
     name: rtlo-map-server
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn refresh_server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 300
+    startCommand: gunicorn refresh_server:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --keep-alive 5 --preload
     envVars:
       - key: WORK_DIR
         value: /opt/render/project/src

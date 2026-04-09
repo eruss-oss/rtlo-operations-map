@@ -261,6 +261,18 @@ def crew():
     return jsonify({'crew': active, 'count': len(active)})
 
 
+@app.route('/data', methods=['GET'])
+def data():
+    """Serve the current data.json directly — avoids CDN CORS issues."""
+    data_file = os.path.join(WORK_DIR, 'data.json')
+    if os.path.exists(data_file):
+        resp = send_file(data_file, mimetype='application/json')
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        resp.headers['Cache-Control'] = 'no-cache'
+        return resp
+    return jsonify({'error': 'data.json not found'}), 404
+
+
 @app.route('/', methods=['GET'])
 def index():
     """Serve the map HTML directly at the root URL."""
