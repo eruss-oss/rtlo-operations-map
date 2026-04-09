@@ -1,0 +1,44 @@
+name: RTLO Map Refresh
+
+on:
+  schedule:
+    # Every 30 minutes Mon-Sat 7am-7pm MST (14:00-02:00 UTC, MST = UTC-7)
+    - cron: '0,30 14-23 * * 1-6'
+    - cron: '0,30 0-2 * * 2-7'
+    # Every 3 hours overnight (outside business hours)
+    - cron: '0 3,6,9,11 * * *'
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily refresh
+        env:
+          WORK_DIR: ${{ github.workspace }}
+          CREW_FILE: /tmp/crew_locations.json
+          MAP_HTML_FILE: /tmp/map.html
+          CREW_API_KEY: ${{ secrets.CREW_API_KEY }}
+          JT_GRANT_KEY: ${{ secrets.JT_GRANT_KEY }}
+          JT_ORG_ID: ${{ secrets.JT_ORG_ID }}
+          GHL_PIT: ${{ secrets.GHL_PIT }}
+          GHL_LOCATION_ID: ${{ secrets.GHL_LOCATION_ID }}
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
+          MAP_URL: https://map.inhousekru.com
+          EMAIL_TO: eruss@rtloaz.com
+        run: python3 daily_refresh.py
