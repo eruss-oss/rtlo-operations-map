@@ -4,9 +4,10 @@ on:
   schedule:
     # Every 30 minutes Mon-Sat 7am-7pm MST (14:00-02:00 UTC, MST = UTC-7)
     - cron: '0,30 14-23 * * 1-6'
-    - cron: '0,30 0-2 * * 0,2,3,4,5,6,7'
-    # Every 3 hours overnight (outside business hours)
-    - cron: '0 3,6,9,11 * * *'
+    # Midnight-2am UTC continuation (7pm-9pm MST) every day
+    - cron: '0,30 0-2 * * *'
+    # Every 3 hours overnight
+    - cron: '0 4,7,10,13 * * *'
   workflow_dispatch:  # Allow manual trigger from GitHub UI
 
 jobs:
