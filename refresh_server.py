@@ -20,7 +20,8 @@ from datetime import datetime, timezone
 
 app = Flask(__name__)
 WORK_DIR = os.environ.get('WORK_DIR', '/home/ubuntu/rtlo-map')
-CREW_FILE = os.environ.get('CREW_FILE', os.path.join(WORK_DIR, 'crew_locations.json'))
+# Use /tmp for crew file since Render's project dir is read-only on free tier
+CREW_FILE = os.environ.get('CREW_FILE', '/tmp/crew_locations.json')
 
 # Prevent concurrent refresh runs
 _refresh_lock = threading.Lock()
