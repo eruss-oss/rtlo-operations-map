@@ -1,0 +1,9 @@
+config.js
+*.pyc
+__pycache__/
+*.log
+nohup.out
+last_email.html
+data_cdn_url.txt
+# map.html is built by daily_refresh.py — exclude from repo
+map.html

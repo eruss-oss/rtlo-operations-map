@@ -1,0 +1,56 @@
+[
+  {
+    "name": "Synthetic Grass Warehouse - Glendale",
+    "address": "5700 N 101st Ave, Glendale, AZ 85307",
+    "lat": 33.51849,
+    "lng": -112.27754
+  },
+  {
+    "name": "Synthetic Grass Warehouse - Gilbert",
+    "address": "4465 E Nunneley Rd, Gilbert, AZ 85296",
+    "lat": 33.329907,
+    "lng": -111.694125
+  },
+  {
+    "name": "Verde Valley Turf - Phoenix",
+    "address": "430 N 47th Ave, Phoenix, AZ 85043",
+    "lat": 33.454108,
+    "lng": -112.161431
+  },
+  {
+    "name": "Verde Valley Turf - Queen Creek",
+    "address": "18698 E Business Park Dr, Queen Creek, AZ 85142",
+    "lat": 33.280015,
+    "lng": -111.680315
+  },
+  {
+    "name": "Turf Hub - Chandler",
+    "address": "1725 E Germann Rd, Chandler, AZ 85286",
+    "lat": 33.276423,
+    "lng": -111.813196
+  },
+  {
+    "name": "Turf Hub - Phoenix",
+    "address": "180 W Pinnacle Peak Rd, Phoenix, AZ 85027",
+    "lat": 33.69934,
+    "lng": -112.077878
+  },
+  {
+    "name": "Turf Hub - Peoria",
+    "address": "9700 N 91st Ave, Peoria, AZ 85345",
+    "lat": 33.571937,
+    "lng": -112.255798
+  },
+  {
+    "name": "No Limit Turf - Mesa",
+    "address": "8305 E Sebring Ave, Mesa, AZ 85212",
+    "lat": 33.332864,
+    "lng": -111.654913
+  },
+  {
+    "name": "Turf Sellers - Phoenix",
+    "address": "405 N 75th Ave, Phoenix, AZ 85043",
+    "lat": 33.454699,
+    "lng": -112.219217
+  }
+]

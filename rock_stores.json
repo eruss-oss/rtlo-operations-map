@@ -1,0 +1,130 @@
+[
+  {
+    "name": "MDI Rock",
+    "address": "2815 E Rose Garden Ln, Phoenix, AZ 85050",
+    "phone": "(602) 569-8722",
+    "website": "mdirock.com",
+    "notes": "Best for boulders + client visits",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.67624,
+    "lon": -112.021
+  },
+  {
+    "name": "ABC Sand & Rock",
+    "address": "1804 N 27th Ave, Phoenix, AZ 85009",
+    "phone": "(602) 272-1792",
+    "website": "abcsandrock.com",
+    "notes": "Most consistent supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.468417,
+    "lon": -112.117534
+  },
+  {
+    "name": "A&A Materials",
+    "address": "10333 E McDowell Rd, Scottsdale, AZ 85256",
+    "phone": "(480) 986-1110",
+    "website": "",
+    "notes": "Bulk aggregate",
+    "showroom": false,
+    "ranking": "Secondary",
+    "lat": 33.46537,
+    "lon": -111.859353
+  },
+  {
+    "name": "A-1 Materials",
+    "address": "9503 W Buckeye Rd, Tolleson, AZ 85353",
+    "phone": "(623) 936-9600",
+    "website": "",
+    "notes": "West Valley aggregate",
+    "showroom": false,
+    "ranking": "Secondary",
+    "lat": 33.435235,
+    "lon": -112.264101
+  },
+  {
+    "name": "J&J Landscaping Material",
+    "address": "5000 E McKellips Rd, Mesa, AZ 85215",
+    "phone": "(480) 832-0500",
+    "website": "",
+    "notes": "East Valley bulk material",
+    "showroom": false,
+    "ranking": "Secondary",
+    "lat": 33.452436,
+    "lon": -111.722931
+  },
+  {
+    "name": "The Stone Yard - North Phoenix",
+    "address": "1739 W Park View Ln, Phoenix, AZ 85085",
+    "phone": "(623) 580-1234",
+    "website": "",
+    "notes": "Decorative rock yard",
+    "showroom": false,
+    "ranking": "Secondary",
+    "lat": 33.70701,
+    "lon": -112.09701
+  },
+  {
+    "name": "Carso Landscape Supply",
+    "address": "10701 W Hatfield Rd, Sun City, AZ 85373",
+    "phone": "(623) 977-3800",
+    "website": "",
+    "notes": "West Valley landscape supply",
+    "showroom": false,
+    "ranking": "Secondary",
+    "lat": 33.70564,
+    "lon": -112.29134
+  },
+  {
+    "name": "Rock 4 Less",
+    "address": "21839 N 16th Ave, Phoenix, AZ 85027",
+    "phone": "",
+    "website": "rock4lessaz.com",
+    "notes": "Cost-effective",
+    "showroom": false,
+    "ranking": "Secondary",
+    "lat": 33.66866,
+    "lon": -112.093398
+  },
+  {
+    "name": "West Valley Rock",
+    "address": "25376 W Tonopah Salome Hwy, Buckeye, AZ 85396",
+    "phone": "",
+    "website": "westvalleyrock.com",
+    "notes": "Large boulder sourcing",
+    "showroom": false,
+    "ranking": "Specialty",
+    "lat": 33.436335,
+    "lon": -112.596945
+  },
+  {
+    "name": "B-Line Materials",
+    "address": "3318 S 80th St, Mesa, AZ 85212",
+    "phone": "(602) 432-5230",
+    "website": "blinematerials.com",
+    "notes": "Decorative rock, sand and gravel - East Valley",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.355338,
+    "lon": -111.662161
+  },
+  {
+    "name": "MDI Rock - Queen Creek / San Tan Valley",
+    "address": "1566 W Ocotillo Rd, San Tan Valley, AZ 85140",
+    "phone": "(480) 888-0487",
+    "website": "mdirock.com",
+    "showroom": false,
+    "notes": "East Valley MDI Rock location. Open to public. Best for boulders + client visits.",
+    "lat": 33.25001,
+    "lon": -111.58178
+  },
+  {
+    "name": "ABC Sand & Rock - Glendale",
+    "address": "5401 N 119th Ave, Glendale, AZ 85307",
+    "lat": 33.4749439,
+    "lng": -112.3151391,
+    "showroom": false,
+    "notes": "Second ABC Sand & Rock location. Decorative rock, sand, gravel."
+  }
+]

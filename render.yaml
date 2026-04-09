@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: rtlo-map-server
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn refresh_server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 300
+    envVars:
+      - key: WORK_DIR
+        value: /opt/render/project/src
+      - key: CREW_FILE
+        value: /opt/render/project/src/crew_locations.json
+      - key: CREW_API_KEY
+        value: rtlo-crew-2026
+      - key: JT_GRANT_KEY
+        sync: false
+      - key: JT_ORG_ID
+        sync: false
+      - key: GHL_PIT
+        sync: false
+      - key: GHL_LOCATION_ID
+        sync: false
+      - key: MAPBOX_TOKEN
+        sync: false
+      - key: EMAIL_TO
+        value: eruss@rtloaz.com
+      - key: MAP_URL
+        value: https://map.inhousekru.com

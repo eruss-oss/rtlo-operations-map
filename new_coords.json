@@ -1,0 +1,32 @@
+{
+  "Arid Solutions Nursery": {
+    "lat": 33.3925554,
+    "lng": -111.9996032,
+    "address": "3815 E Southern Ave, Phoenix, AZ 85040"
+  },
+  "Floor & Decor - Mesa": {
+    "lat": 33.3914679,
+    "lng": -111.6795474,
+    "address": "7022 E Hampton Ave, Mesa, AZ 85209"
+  },
+  "Floor & Decor - Scottsdale": {
+    "lat": 33.6267448,
+    "lng": -111.8966677,
+    "address": "15515 N Hayden Rd, Scottsdale, AZ 85260"
+  },
+  "ABC Sand & Rock - Glendale": {
+    "lat": null,
+    "lng": null,
+    "address": "5401 N 119th Ave, Glendale, AZ 85307"
+  },
+  "Sonoran Lighting Supply": {
+    "lat": 33.6738345,
+    "lng": -112.0194569,
+    "address": "2920 E Mohawk Ln, Phoenix, AZ 85050"
+  },
+  "Floor & Decor - Queen Creek": {
+    "lat": 33.391412,
+    "lng": -111.6797212,
+    "address": "Queen Creek / San Tan Valley, AZ"
+  }
+}

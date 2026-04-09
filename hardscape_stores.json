@@ -1,0 +1,53 @@
+[
+  {
+    "name": "MSI Surfaces",
+    "address": "4405 W Roosevelt St, Phoenix, AZ 85009",
+    "phone": "(602) 393-6330",
+    "website": "msisurfaces.com",
+    "notes": "Large inventory, fast availability",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.459139,
+    "lon": -112.155524
+  },
+  {
+    "name": "The Stone Collection",
+    "address": "4101 S 38th St, Phoenix, AZ 85040",
+    "phone": "(602) 889-2067",
+    "website": "thestonecollection.com",
+    "notes": "High-end curated slabs",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.409761,
+    "lon": -111.998404
+  },
+  {
+    "name": "Durango Stone",
+    "address": "15550 N 84th St #105, Scottsdale, AZ 85260",
+    "phone": "(602) 438-1001",
+    "website": "durangostone.com",
+    "notes": "Luxury travertine/limestone",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.627288,
+    "lon": -111.900336
+  },
+  {
+    "name": "Belgard Solution Center",
+    "address": "1919 W Fairmont Dr Suite 5, Tempe, AZ 85282",
+    "phone": "(770) 828-5941",
+    "website": "belgard.com",
+    "showroom": true,
+    "notes": "Oldcastle APG Solutions Center \u2014 full Belgard product showroom with outdoor displays",
+    "lat": 33.395609,
+    "lon": -111.969065
+  },
+  {
+    "name": "Pioneer Landscape Centers",
+    "address": "1515 W Deer Valley Rd, Phoenix, AZ 85027",
+    "lat": 33.6862,
+    "lng": -112.0467,
+    "showroom": true,
+    "notes": "SiteOne family. Full hardscape showroom \u2014 pavers, walls, edging."
+  }
+]

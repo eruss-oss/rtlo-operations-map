@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTLO Operations Command Center</title>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0e1a; color: #fff; height: 100vh; overflow: hidden; }
+  #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+  /* Header */
+  #header {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+    background: linear-gradient(135deg, rgba(10,14,26,0.95) 0%, rgba(20,30,60,0.95) 100%);
+    border-bottom: 1px solid rgba(100,160,255,0.3);
+    padding: 10px 20px; display: flex; align-items: center; gap: 16px;
+    backdrop-filter: blur(10px);
+  }
+  #header h1 { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+  #header .subtitle { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  #last-updated { margin-left: auto; font-size: 11px; color: rgba(255,255,255,0.4); }
+
+  /* Weather alert banner */
+  #weather-banner {
+    position: absolute; top: 52px; left: 0; right: 0; z-index: 160;
+    background: linear-gradient(90deg, rgba(231,76,60,0.92), rgba(192,57,43,0.92));
+    border-bottom: 1px solid rgba(231,76,60,0.5);
+    padding: 6px 16px; display: none; align-items: center; gap: 10px;
+    backdrop-filter: blur(8px); font-size: 12px; font-weight: 600;
+  }
+  #weather-banner .banner-icon { font-size: 16px; }
+  #weather-banner .banner-text { flex: 1; }
+  #weather-banner .banner-close { cursor: pointer; opacity: 0.7; font-size: 16px; padding: 2px 6px; }
+  #weather-banner .banner-close:hover { opacity: 1; }
+
+  /* Filter toolbar */
+  #filter-toolbar {
+    position: absolute; top: 52px; left: 0; right: 0; z-index: 150;
+    background: rgba(8,12,22,0.93); border-bottom: 1px solid rgba(100,160,255,0.15);
+    padding: 5px 12px; display: flex; align-items: center; gap: 4px;
+    flex-wrap: nowrap; overflow-x: auto; backdrop-filter: blur(8px);
+    transition: top 0.2s; scrollbar-width: none;
+  }
+  #filter-toolbar::-webkit-scrollbar { display: none; }
+  #filter-toolbar.banner-shown { top: 88px; }
+  #filter-toolbar .filter-label {
+    font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase;
+    letter-spacing: 0.8px; margin-right: 4px; white-space: nowrap;
+  }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 20px; cursor: pointer;
+    font-size: 10.5px; font-weight: 600; border: 1.5px solid;
+    transition: all 0.18s; white-space: nowrap; user-select: none;
+  }
+  .filter-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .filter-chip .chip-diamond { width: 9px; height: 9px; transform: rotate(45deg); border-radius: 1px; flex-shrink: 0; display: inline-block; }
+  .filter-chip.active { opacity: 1; }
+  .filter-chip.inactive { opacity: 0.35; filter: grayscale(0.5); }
+  .filter-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 4px; }
+  .master-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 20px; cursor: pointer;
+    font-size: 10px; font-weight: 700; border: 1.5px solid;
+    transition: all 0.18s; white-space: nowrap; user-select: none;
+    letter-spacing: 0.3px;
+  }
+  .master-toggle.jt-master { color: #7ab8ff; border-color: rgba(122,184,255,0.5); background: rgba(122,184,255,0.1); }
+  .master-toggle.jt-master:hover { background: rgba(122,184,255,0.25); }
+  .master-toggle.ghl-master { color: #e74c3c; border-color: rgba(231,76,60,0.5); background: rgba(231,76,60,0.1); }
+  .master-toggle.ghl-master:hover { background: rgba(231,76,60,0.25); }
+
+  /* Zone filter chips */
+  .zone-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 7px; border-radius: 20px; cursor: pointer;
+    font-size: 10px; font-weight: 700; border: 1.5px solid;
+    transition: all 0.18s; white-space: nowrap; user-select: none;
+    letter-spacing: 0.3px;
+  }
+  .zone-chip.active { opacity: 1; }
+  .zone-chip.inactive { opacity: 0.3; filter: grayscale(0.6); }
+
+  /* Search bar */
+  #search-container {
+    position: absolute; top: 108px; left: 50%; transform: translateX(-50%);
+    z-index: 140; width: 380px;
+  }
+  #search-box {
+    width: 100%; padding: 10px 40px 10px 16px; border-radius: 25px;
+    border: 1px solid rgba(100,160,255,0.4);
+    background: rgba(10,14,26,0.92); color: #fff; font-size: 14px;
+    backdrop-filter: blur(10px); outline: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4); transition: border-color 0.2s;
+  }
+  #search-box:focus { border-color: rgba(100,160,255,0.8); }
+  #search-box::placeholder { color: rgba(255,255,255,0.4); }
+  #search-clear {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: rgba(255,255,255,0.3); cursor: pointer; font-size: 16px;
+    display: none; line-height: 1; padding: 4px;
+  }
+  #search-clear:hover { color: rgba(255,255,255,0.7); }
+  #autocomplete-list {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: rgba(10,14,26,0.97); border: 1px solid rgba(100,160,255,0.3);
+    border-radius: 14px; overflow: hidden; display: none;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6); z-index: 300;
+    max-height: 280px; overflow-y: auto;
+  }
+  .autocomplete-item {
+    padding: 10px 16px; cursor: pointer; font-size: 13px;
+    color: rgba(255,255,255,0.8); border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s; display: flex; align-items: flex-start; gap: 10px;
+  }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover, .autocomplete-item.selected { background: rgba(100,160,255,0.15); color: #fff; }
+  .autocomplete-icon { color: rgba(100,160,255,0.6); margin-top: 1px; flex-shrink: 0; }
+  .autocomplete-main { font-weight: 600; color: #fff; }
+  .autocomplete-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 1px; }
+  #search-result {
+    margin-top: 6px; padding: 12px 16px; border-radius: 12px;
+    background: rgba(10,14,26,0.97); border: 1px solid rgba(100,160,255,0.3);
+    font-size: 13px; display: none; backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  /* Left sidebar — dashboard + legend stacked */
+  #left-sidebar {
+    position: absolute; top: 108px; left: 16px; z-index: 100;
+    width: 210px; display: flex; flex-direction: column; gap: 10px;
+    max-height: calc(100vh - 120px); overflow-y: auto;
+    scrollbar-width: none;
+  }
+  #left-sidebar::-webkit-scrollbar { display: none; }
+
+  /* Dashboard panel */
+  #dashboard {
+    background: rgba(10,14,26,0.92);
+    border: 1px solid rgba(100,160,255,0.25); border-radius: 14px;
+    padding: 12px; backdrop-filter: blur(10px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  #dashboard h3 { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .dash-section { margin-bottom: 14px; }
+  .dash-section h4 { font-size: 11px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .dash-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .dash-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-right: 8px; }
+  .dash-label { font-size: 12px; color: rgba(255,255,255,0.75); flex: 1; }
+  .dash-count { font-size: 13px; font-weight: 700; color: #fff; }
+  .dash-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 10px 0; }
+  .dash-total { display: flex; justify-content: space-between; font-size: 13px; color: rgba(255,255,255,0.6); }
+  .dash-total span:last-child { font-weight: 700; color: #fff; }
+
+  /* Weather risk panel in dashboard */
+  #weather-risk-panel {
+    margin-top: 10px; padding: 8px 10px; border-radius: 8px;
+    background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3);
+    display: none;
+  }
+  #weather-risk-panel h4 { font-size: 10px; color: #e74c3c; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .risk-item { font-size: 11px; color: rgba(255,255,255,0.8); margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+
+  /* Legend panel — below dashboard on left */
+  #legend-panel {
+    background: rgba(10,14,26,0.92); border: 1px solid rgba(100,160,255,0.25);
+    border-radius: 14px; padding: 14px;
+    backdrop-filter: blur(10px); box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  #legend h3 { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .legend-section { margin-bottom: 12px; }
+  .legend-section h4 { font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .legend-item { display: flex; align-items: center; margin-bottom: 5px; gap: 8px; }
+  .legend-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .legend-zone { width: 14px; height: 10px; border-radius: 3px; flex-shrink: 0; opacity: 0.7; }
+  .legend-label { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+  /* Right sidebar container */
+  #right-sidebar {
+    position: absolute; top: 108px; right: 16px; z-index: 100;
+    width: 220px; display: flex; flex-direction: column; gap: 10px;
+    max-height: calc(100vh - 120px); overflow-y: auto;
+    scrollbar-width: none;
+  }
+  #right-sidebar::-webkit-scrollbar { display: none; }
+
+  /* Supplier layers panel */
+  #supplier-panel {
+    background: rgba(10,14,26,0.92);
+    border: 1px solid rgba(100,160,255,0.25);
+    border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(10px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  #supplier-panel h3 { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .supplier-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 10px; }
+  .supplier-info { display: flex; align-items: center; gap: 8px; }
+  .supplier-icon { font-size: 14px; line-height: 1; }
+  .supplier-name { font-size: 12px; color: rgba(255,255,255,0.8); }
+  .supplier-count { font-size: 11px; color: rgba(255,255,255,0.35); margin-left: 2px; }
+
+  /* Weather toggle */
+  #weather-toggle {
+    background: rgba(10,14,26,0.92);
+    border: 1px solid rgba(100,160,255,0.25);
+    border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(10px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  #weather-toggle h3 { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .toggle-label { font-size: 12px; color: rgba(255,255,255,0.7); flex: 1; }
+  .toggle-btn {
+    padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(100,160,255,0.4);
+    background: rgba(100,160,255,0.15); color: #7ab8ff; font-size: 11px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .toggle-btn.active { background: rgba(100,160,255,0.4); color: #fff; }
+  .toggle-btn:hover { background: rgba(100,160,255,0.3); }
+  .weather-desc { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 4px; line-height: 1.4; }
+
+  /* Popup */
+  .mapboxgl-popup-content {
+    background: rgba(10,14,26,0.97) !important;
+    border: 1px solid rgba(100,160,255,0.3) !important;
+    border-radius: 12px !important; padding: 0 !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+    min-width: 240px;
+  }
+  .mapboxgl-popup-tip { display: none !important; }
+  .popup-inner { padding: 14px 16px; }
+  .popup-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .popup-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; margin-bottom: 8px;
+  }
+  .popup-row { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 3px; }
+  .popup-row span { color: rgba(255,255,255,0.9); }
+  .popup-link {
+    display: block; margin-top: 10px; padding: 7px 14px; border-radius: 8px;
+    background: rgba(100,160,255,0.2); color: #7ab8ff; text-decoration: none;
+    font-size: 12px; font-weight: 600; text-align: center;
+    border: 1px solid rgba(100,160,255,0.3); transition: all 0.2s;
+  }
+  .popup-link:hover { background: rgba(100,160,255,0.35); color: #fff; }
+  .weather-risk-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;
+    background: rgba(231,76,60,0.2); color: #e74c3c; border: 1px solid rgba(231,76,60,0.4);
+    margin-bottom: 6px;
+  }
+
+  /* Loading overlay */
+  #loading {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10,14,26,0.9); z-index: 200;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  #loading h2 { font-size: 20px; margin-bottom: 10px; color: #7ab8ff; }
+  #loading p { font-size: 13px; color: rgba(255,255,255,0.5); }
+  .spinner {
+    width: 40px; height: 40px; border: 3px solid rgba(100,160,255,0.2);
+    border-top-color: #7ab8ff; border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Weather zone tint */
+  .weather-zone-tint { /* applied via JS paint property */ }
+
+  /* ─── MOBILE RESPONSIVE ─────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    /* Header: compact */
+    #header { padding: 8px 12px; gap: 8px; }
+    #header h1, #header-title { font-size: 14px !important; }
+    #header .subtitle { display: none; }
+    #last-updated { font-size: 10px; }
+
+    /* Filter toolbar: scrollable row, smaller chips */
+    #filter-toolbar { padding: 4px 8px; gap: 3px; top: 44px; }
+    #filter-toolbar.banner-shown { top: 80px; }
+    .filter-chip { font-size: 9.5px; padding: 2px 6px; }
+    .master-toggle { font-size: 9px; padding: 2px 6px; }
+    .zone-chip { font-size: 9px; padding: 2px 5px; }
+
+    /* Search: full width, below toolbar */
+    #search-container {
+      top: 88px; left: 8px; right: 8px;
+      width: auto; transform: none;
+    }
+    #search-box { font-size: 13px; padding: 9px 36px 9px 14px; }
+
+    /* Hide left and right sidebars by default on mobile */
+    #left-sidebar { display: none; }
+    #right-sidebar { display: none; }
+
+    /* Mobile bottom drawer — replaces sidebars */
+    #mobile-drawer {
+      display: flex !important;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(10,14,26,0.97); border-top: 1px solid rgba(100,160,255,0.25);
+      backdrop-filter: blur(12px);
+      flex-direction: column;
+      transition: transform 0.3s ease;
+      max-height: 70vh;
+    }
+    #mobile-drawer.collapsed { transform: translateY(calc(100% - 44px)); }
+    #mobile-drawer-handle {
+      display: flex !important;
+      align-items: center; justify-content: space-between;
+      padding: 10px 16px; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    #mobile-drawer-handle .drawer-title {
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.8);
+      display: flex; align-items: center; gap: 10px;
+    }
+    #mobile-drawer-handle .drawer-counts {
+      font-size: 11px; color: rgba(255,255,255,0.4);
+    }
+    #mobile-drawer-handle .drawer-chevron {
+      font-size: 14px; color: rgba(255,255,255,0.4); transition: transform 0.3s;
+    }
+    #mobile-drawer.collapsed .drawer-chevron { transform: rotate(180deg); }
+    #mobile-drawer-content {
+      overflow-y: auto; padding: 12px 16px 24px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    /* Mini dashboard in drawer */
+    .mobile-dash-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .mobile-dash-row:last-child { border-bottom: none; }
+    .mobile-dash-label { font-size: 12px; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 8px; }
+    .mobile-dash-count { font-size: 14px; font-weight: 700; color: #fff; }
+    /* Mobile quick-action row */
+    #mobile-quick-actions {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    #mobile-quick-actions button {
+      flex: 1; min-width: 80px;
+      padding: 8px 10px; border-radius: 10px;
+      background: rgba(100,160,255,0.15); border: 1px solid rgba(100,160,255,0.3);
+      color: #7ab8ff; font-size: 11px; font-weight: 600; cursor: pointer;
+    }
+    #mobile-quick-actions button.active {
+      background: rgba(100,160,255,0.4); color: #fff;
+    }
+
+    /* Popups: wider on mobile */
+    .mapboxgl-popup-content { min-width: 260px !important; max-width: 90vw !important; }
+    .popup-inner { padding: 12px 14px; }
+    .popup-title { font-size: 15px; }
+    .popup-link { padding: 9px 10px; font-size: 13px; }
+
+    /* Map nav controls: move up above drawer */
+    .mapboxgl-ctrl-top-right { top: 44px !important; }
+    .mapboxgl-ctrl-bottom-right { bottom: 50px !important; }
+  }
+
+  /* Mobile drawer hidden on desktop */
+  #mobile-drawer { display: none; }
+  #mobile-drawer-handle { display: none; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <h2>RTLO Command Center</h2>
+  <p>Loading operations map...</p>
+</div>
+
+<div id="map"></div>
+
+<!-- Header -->
+<div id="header">
+  <div>
+    <div id="header-title" style="font-size:18px;font-weight:700;color:#fff;letter-spacing:0.5px;">⚓ RTLO Operations Command Center</div>
+    <div class="subtitle">Rising Tide Luxury Outdoors · Phoenix Metro</div>
+  </div>
+  <div id="last-updated">Updated: <span id="update-time">Loading...</span></div>
+</div>
+
+<!-- Weather Alert Banner -->
+<div id="weather-banner">
+  <span class="banner-icon">⚠️</span>
+  <span class="banner-text" id="banner-text">Weather alert active</span>
+  <span class="banner-close" onclick="document.getElementById('weather-banner').style.display='none';document.getElementById('filter-toolbar').classList.remove('banner-shown');stopWeatherFlash();">✕</span>
+</div>
+
+<!-- Filter Toolbar -->
+<div id="filter-toolbar">
+  <div class="master-toggle jt-master" id="jt-master-btn" onclick="masterToggle('jt')" title="Toggle all JobTread pins">JT ▾</div>
+  <span class="filter-label">JobTread:</span>
+  <div class="filter-chip active" id="chip-jt-active" onclick="toggleChip('jt-active')" style="color:#27ae60;border-color:#27ae60;background:rgba(39,174,96,0.12)">
+    <div class="chip-dot" style="background:#27ae60"></div>Active
+  </div>
+  <div class="filter-chip active" id="chip-jt-sold" onclick="toggleChip('jt-sold')" style="color:#9b59b6;border-color:#9b59b6;background:rgba(155,89,182,0.12)">
+    <div class="chip-dot" style="background:#9b59b6"></div>Sold / Intake
+  </div>
+  <div class="filter-divider"></div>
+  <div class="master-toggle ghl-master" id="ghl-master-btn" onclick="masterToggle('ghl')" title="Toggle all GHL pins">GHL ▾</div>
+  <span class="filter-label">GHL:</span>
+  <div class="filter-chip active" id="chip-ghl-appt" onclick="toggleChip('ghl-appt')" style="color:#ff6b35;border-color:#ff6b35;background:rgba(255,107,53,0.12)">
+    <div class="chip-diamond" style="background:#ff6b35"></div>Appt Booked
+  </div>
+  <div class="filter-chip active" id="chip-ghl-consult" onclick="toggleChip('ghl-consult')" style="color:#e91e8c;border-color:#e91e8c;background:rgba(233,30,140,0.12)">
+    <div class="chip-diamond" style="background:#e91e8c"></div>Consultation
+  </div>
+  <div class="filter-chip active" id="chip-ghl-proposal" onclick="toggleChip('ghl-proposal')" style="color:#f1c40f;border-color:#f1c40f;background:rgba(241,196,15,0.12)">
+    <div class="chip-diamond" style="background:#f1c40f"></div>Proposal
+  </div>
+  <div class="filter-chip active" id="chip-ghl-permitting" onclick="toggleChip('ghl-permitting')" style="color:#e74c3c;border-color:#e74c3c;background:rgba(231,76,60,0.12)">
+    <div class="chip-diamond" style="background:#e74c3c"></div>Permitting
+  </div>
+  <div class="filter-divider"></div>
+  <span class="filter-label">Zone:</span>
+  <div class="zone-chip active" id="zonechip-1" onclick="toggleZoneChip('Zone 1')" style="color:#f1c40f;border-color:rgba(241,196,15,0.5);background:rgba(241,196,15,0.1)">Z1</div>
+  <div class="zone-chip active" id="zonechip-2a" onclick="toggleZoneChip('Zone 2A')" style="color:#e67e22;border-color:rgba(230,126,34,0.5);background:rgba(230,126,34,0.1)">Z2A</div>
+  <div class="zone-chip active" id="zonechip-2b" onclick="toggleZoneChip('Zone 2B')" style="color:#d35400;border-color:rgba(211,84,0,0.5);background:rgba(211,84,0,0.1)">Z2B</div>
+  <div class="zone-chip active" id="zonechip-3a" onclick="toggleZoneChip('Zone 3A')" style="color:#27ae60;border-color:rgba(39,174,96,0.5);background:rgba(39,174,96,0.1)">Z3A</div>
+  <div class="zone-chip active" id="zonechip-3b" onclick="toggleZoneChip('Zone 3B')" style="color:#1e8449;border-color:rgba(30,132,73,0.5);background:rgba(30,132,73,0.1)">Z3B</div>
+  <div class="zone-chip active" id="zonechip-4a" onclick="toggleZoneChip('Zone 4A')" style="color:#2980b9;border-color:rgba(41,128,185,0.5);background:rgba(41,128,185,0.1)">Z4A</div>
+  <div class="zone-chip active" id="zonechip-4b" onclick="toggleZoneChip('Zone 4B')" style="color:#1a5276;border-color:rgba(26,82,118,0.5);background:rgba(26,82,118,0.1)">Z4B</div>
+  <div class="zone-chip active" id="zonechip-5a" onclick="toggleZoneChip('Zone 5A')" style="color:#8e44ad;border-color:rgba(142,68,173,0.5);background:rgba(142,68,173,0.1)">Z5A</div>
+  <div class="zone-chip active" id="zonechip-5b" onclick="toggleZoneChip('Zone 5B')" style="color:#6c3483;border-color:rgba(108,52,131,0.5);background:rgba(108,52,131,0.1)">Z5B</div>
+</div>
+
+<!-- Search -->
+<div id="search-container">
+  <div style="position:relative;">
+    <input id="search-box" type="text" placeholder="🔍  Search address, supplier, or job..." autocomplete="off">
+    <span id="search-clear" onclick="clearSearch()">✕</span>
+    <div id="autocomplete-list"></div>
+  </div>
+  <div id="search-result"></div>
+</div>
+
+<!-- Left Sidebar: Dashboard + Legend -->
+<div id="left-sidebar">
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <h3>📊 Live Dashboard</h3>
+    <div class="dash-section">
+      <h4>JobTread Jobs</h4>
+      <div id="jt-stats"></div>
+    </div>
+    <hr class="dash-divider">
+    <div class="dash-section">
+      <h4>GHL Pipeline</h4>
+      <div id="ghl-stats"></div>
+    </div>
+    <hr class="dash-divider">
+    <div class="dash-total">
+      <span>Total on Map</span>
+      <span id="total-count">—</span>
+    </div>
+    <div id="weather-risk-panel">
+      <h4>⚠️ Weather Risks Today</h4>
+      <div id="weather-risk-items"></div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div id="legend-panel">
+  <div id="legend">
+    <h3>Map Legend</h3>
+    <div class="legend-section">
+      <h4>Job Status (JobTread)</h4>
+      <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div><div class="legend-label">Active Production</div></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9b59b6"></div><div class="legend-label">Sold / Project Intake</div></div>
+    </div>
+    <div class="legend-section">
+      <h4>GHL Pipeline (Pre-Sale)</h4>
+      <div class="legend-item"><div style="width:11px;height:11px;background:#ff6b35;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#ff6b35;">Appt Booked</div></div>
+      <div class="legend-item"><div style="width:11px;height:11px;background:#e91e8c;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#e91e8c;">Consultation</div></div>
+      <div class="legend-item"><div style="width:11px;height:11px;background:#f1c40f;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#f1c40f;">Proposal</div></div>
+      <div class="legend-item"><div style="width:11px;height:11px;background:#e74c3c;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#e74c3c;">Permitting</div></div>
+    </div>
+    <div class="legend-section">
+      <h4>Service Zones</h4>
+      <div class="legend-item"><div class="legend-zone" style="background:#f1c40f"></div><div class="legend-label">Zone 1 (Core)</div></div>
+      <div class="legend-item"><div class="legend-zone" style="background:#e67e22"></div><div class="legend-label">Zone 2A / 2B</div></div>
+      <div class="legend-item"><div class="legend-zone" style="background:#27ae60"></div><div class="legend-label">Zone 3A / 3B</div></div>
+      <div class="legend-item"><div class="legend-zone" style="background:#2980b9"></div><div class="legend-label">Zone 4A / 4B</div></div>
+      <div class="legend-item"><div class="legend-zone" style="background:#8e44ad"></div><div class="legend-label">Zone 5A / 5B</div></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- Right Sidebar: Supplier Layers + Weather -->
+<div id="right-sidebar">
+  <!-- Supplier Layers Panel -->
+  <div id="supplier-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h3 style="margin:0;">🏪 Supplier Layers</h3>
+      <div style="display:flex;gap:6px;">
+        <button class="toggle-btn active" id="btn-suppliers-all" onclick="toggleAllSuppliers(true)" style="font-size:10px;padding:3px 8px;">All ON</button>
+        <button class="toggle-btn" id="btn-suppliers-none" onclick="toggleAllSuppliers(false)" style="font-size:10px;padding:3px 8px;">All OFF</button>
+      </div>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#f96302;">▲</span><span class="supplier-name">Home Depot</span><span class="supplier-count" id="hd-count"></span></div>
+      <button class="toggle-btn" id="btn-homedepot" onclick="toggleSupplier('homedepot')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#2ecc71;">◆</span><span class="supplier-name">SiteOne Family</span><span class="supplier-count" id="siteone-count"></span></div>
+      <button class="toggle-btn" id="btn-siteone" onclick="toggleSupplier('siteone')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#3498db;">◆</span><span class="supplier-name">Sprinkler World</span><span class="supplier-count" id="sw-count"></span></div>
+      <button class="toggle-btn" id="btn-sprinklerworld" onclick="toggleSupplier('sprinklerworld')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#e74c3c;">★</span><span class="supplier-name">Ace Hardware</span><span class="supplier-count" id="ace-count"></span></div>
+      <button class="toggle-btn" id="btn-ace" onclick="toggleSupplier('ace')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#a8e063;">◆</span><span class="supplier-name">Turf Suppliers</span><span class="supplier-count" id="turf-count"></span></div>
+      <button class="toggle-btn" id="btn-turf" onclick="toggleSupplier('turf')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#d4a017;">◆</span><span class="supplier-name">Rock & Aggregate</span><span class="supplier-count" id="rock-count"></span></div>
+      <button class="toggle-btn" id="btn-rock" onclick="toggleSupplier('rock')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#9b59b6;">◆★</span><span class="supplier-name">Tile & Stone</span><span class="supplier-count" id="tile-count"></span></div>
+      <button class="toggle-btn" id="btn-tile" onclick="toggleSupplier('tile')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#e91e8c;">◆★</span><span class="supplier-name">Hardscapes</span><span class="supplier-count" id="hardscape-count"></span></div>
+      <button class="toggle-btn" id="btn-hardscape" onclick="toggleSupplier('hardscape')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#00bcd4;">★</span><span class="supplier-name">Floor & Decor</span><span class="supplier-count" id="floordecor-count"></span></div>
+      <button class="toggle-btn" id="btn-floordecor" onclick="toggleSupplier('floordecor')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#4caf50;">◆</span><span class="supplier-name">Horizon Supply</span><span class="supplier-count" id="horizon-count"></span></div>
+      <button class="toggle-btn" id="btn-horizon" onclick="toggleSupplier('horizon')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#ff6b00;">🔥</span><span class="supplier-name">BBQ / Outdoor Living</span><span class="supplier-count" id="bbq-count"></span></div>
+      <button class="toggle-btn" id="btn-bbq" onclick="toggleSupplier('bbq')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#7ab8ff;">◆</span><span class="supplier-name">RWC</span><span class="supplier-count" id="other-count"></span></div>
+      <button class="toggle-btn" id="btn-other" onclick="toggleSupplier('other')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#66bb6a;">🌿</span><span class="supplier-name">Nurseries</span><span class="supplier-count" id="nursery-count"></span></div>
+      <button class="toggle-btn" id="btn-nursery" onclick="toggleSupplier('nursery')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#80deea;">★</span><span class="supplier-name">Plumbing & Fixtures</span><span class="supplier-count" id="plumbing-count"></span></div>
+      <button class="toggle-btn" id="btn-plumbing" onclick="toggleSupplier('plumbing')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#29b6f6;">💧</span><span class="supplier-name">Pool & Fountain</span><span class="supplier-count" id="pool-count"></span></div>
+      <button class="toggle-btn" id="btn-pool" onclick="toggleSupplier('pool')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#ffd54f;">◆</span><span class="supplier-name">Miscellaneous</span><span class="supplier-count" id="misc-count"></span></div>
+      <button class="toggle-btn" id="btn-misc" onclick="toggleSupplier('misc')">OFF</button>
+    </div>
+  </div>
+
+  <!-- Weather toggle -->
+  <div id="weather-toggle">
+    <h3>🌦 Weather Overlay</h3>
+    <div class="toggle-row">
+      <span class="toggle-label">Radar</span>
+      <button class="toggle-btn" id="btn-radar" onclick="toggleWeather()" title="Toggle live precipitation radar overlay from OpenWeatherMap">OFF</button>
+    </div>
+    <div class="weather-desc">Shows live precipitation radar over the map. Useful for checking rain/storm coverage across job sites.</div>
+    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+      <div class="toggle-row">
+        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">Live Data</span>
+        <button class="toggle-btn active" id="btn-refresh" onclick="refreshMapData()" title="Fetch latest jobs and leads now" style="font-size:14px;padding:2px 8px;line-height:1;">🔄</button>
+      </div>
+      <div id="refresh-timestamp" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">Loading…</div>
+    </div>
+    <!-- Crew Layer toggle -->
+    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+      <div class="toggle-row">
+        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">👷 Crew</span>
+        <button class="toggle-btn" id="btn-crew" onclick="toggleCrewLayer()" title="Show/hide crew member locations on the map">OFF</button>
+      </div>
+      <div id="crew-status" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">No crew online</div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Bottom Drawer (hidden on desktop, shown on mobile via CSS) -->
+<div id="mobile-drawer" class="collapsed">
+  <div id="mobile-drawer-handle" onclick="toggleMobileDrawer()">
+    <div class="drawer-title">
+      <span>📊 Dashboard</span>
+      <span class="drawer-counts" id="mobile-total-count"></span>
+    </div>
+    <span class="drawer-chevron">▲</span>
+  </div>
+  <div id="mobile-drawer-content">
+    <!-- Mini stats -->
+    <div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">JobTread Jobs</div>
+      <div id="mobile-jt-stats"></div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">GHL Pipeline</div>
+      <div id="mobile-ghl-stats"></div>
+    </div>
+    <!-- Quick actions -->
+    <div id="mobile-quick-actions">
+      <button id="mobile-btn-radar" onclick="toggleWeather();updateMobileRadarBtn()">🌦 Radar: ON</button>
+      <button onclick="refreshMapData()">🔄 Refresh</button>
+      <button onclick="map.flyTo({center:[-111.9,33.45],zoom:8})">🎯 Reset View</button>
+    </div>
+    <div id="mobile-refresh-ts" style="font-size:10px;color:rgba(255,255,255,0.3);text-align:center;">Loading…</div>
+  </div>
+</div>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiZXJ1c3Nub2Z1c3MiLCJhIjoiY21ubTRlemtrMTVrczJxcTcwbmk2dnRtOCJ9.zPPUauWOdG2LpSv5q8ZJ1g';
+
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v11',
+  center: [-111.9, 33.45],
+  zoom: 8,
+  pitch: 0,
+  bearing: 0
+});
+
+map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+map.addControl(new mapboxgl.ScaleControl({ unit: 'imperial' }), 'bottom-right');
+
+// Force-hide loading overlay on style load OR after 4 seconds max
+function hideLoadingOverlay() {
+  const el = document.getElementById('loading');
+  if (el) el.style.display = 'none';
+}
+map.once('style.load', hideLoadingOverlay);
+setTimeout(hideLoadingOverlay, 4000);
+
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+// Supplier data is static (baked in at build time)
+const HD_STORES = HOMEDEPOT_DATA_PLACEHOLDER;
+const SITEONE_STORES = SITEONE_DATA_PLACEHOLDER;
+const SW_STORES = SPRINKLERWORLD_DATA_PLACEHOLDER;
+const ACE_STORES = ACE_DATA_PLACEHOLDER;
+
+// Live data is fetched from shared CDN data.json (updated by cron every 30 min)
+let DATA_JSON_URL = 'DATA_JSON_URL_PLACEHOLDER';
+const REFRESH_SERVER_URL = 'https://5050-ihl6d7nunvq6i0h84nm0z-bed615c6.us2.manus.computer';
+let JT_JOBS = [];
+let GHL_OPPS = [];
+let WEATHER_RISK = {};
+let _mapLoaded = false;
+let _dataLoaded = false;
+let _lastDataHash = '';
+let _refreshInterval = null;
+
+async function fetchLiveData(isRefresh) {
+  const btn = document.getElementById('btn-refresh');
+  const ts = document.getElementById('refresh-timestamp');
+  if (btn) { btn.textContent = '⟳'; btn.style.opacity = '0.5'; }
+  try {
+    const resp = await fetch(DATA_JSON_URL + '?t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const hash = data.generated_at || '';
+    if (hash === _lastDataHash && isRefresh) {
+      // No new data — update timestamp only
+      if (ts) ts.textContent = 'Up to date · ' + fmtNow();
+      if (btn) { btn.textContent = '🔄'; btn.style.opacity = '1'; }
+      return false;
+    }
+    _lastDataHash = hash;
+    JT_JOBS = data.jt_jobs || [];
+    GHL_OPPS = data.ghl_opps || [];
+    WEATHER_RISK = data.weather || {};
+    if (ts) ts.textContent = 'Updated ' + fmtNow();
+    if (btn) { btn.textContent = '🔄'; btn.style.opacity = '1'; }
+    _dataLoaded = true;
+    return true;
+  } catch(e) {
+    console.warn('Live data fetch error:', e);
+    if (btn) { btn.textContent = '🔄'; btn.style.opacity = '1'; }
+    return false;
+  }
+}
+
+function fmtNow() {
+  return new Date().toLocaleTimeString('en-US', {timeZone:'America/Phoenix', hour:'2-digit', minute:'2-digit'});
+}
+
+async function refreshMapData() {
+  const btn = document.getElementById('btn-refresh');
+  const ts = document.getElementById('refresh-timestamp');
+  if (btn) { btn.textContent = '⟳'; btn.style.opacity = '0.5'; btn.disabled = true; }
+  if (ts) ts.textContent = 'Pulling fresh data…';
+  // Step 1: Ask the server to run a live data pull from GHL + JobTread
+  try {
+    const srvResp = await fetch(REFRESH_SERVER_URL + '/refresh', {method:'POST'});
+    const srvData = await srvResp.json();
+    if (srvData.status === 'ok' && srvData.data_url) {
+      DATA_JSON_URL = srvData.data_url;
+    }
+  } catch(e) {
+    console.warn('Refresh server unreachable, fetching cached data:', e);
+  }
+  if (btn) { btn.disabled = false; }
+  // Step 2: Fetch the (now fresh) data.json and update the map
+  const changed = await fetchLiveData(true);
+  if (changed && _mapLoaded) {
+    allMarkers.filter(m => m.source === 'jt' || m.source === 'ghl').forEach(({marker}) => marker.remove());
+    allMarkers.splice(0, allMarkers.length, ...allMarkers.filter(m => m.source !== 'jt' && m.source !== 'ghl'));
+    addJTMarkers();
+    addGHLMarkers();
+    initWeatherRisk();
+    applyWeatherZoneFlash();
+    buildDashboard();
+    searchIndex = buildSearchIndex();
+  }
+}
+
+// Auto-poll every 5 minutes
+function startAutoRefresh() {
+  if (_refreshInterval) clearInterval(_refreshInterval);
+  _refreshInterval = setInterval(() => { refreshMapData(); }, 5 * 60 * 1000);
+}
+
+// Initial data load — fires immediately, then starts polling
+fetchLiveData(false).then(() => {
+  if (_mapLoaded) {
+    addJTMarkers(); addGHLMarkers();
+    initWeatherRisk(); applyWeatherZoneFlash(); buildDashboard();
+    searchIndex = buildSearchIndex();
+  }
+  startAutoRefresh();
+});
+
+// ─── STATUS COLORS ───────────────────────────────────────────────────────────
+
+const JT_STATUS_COLORS = {
+  'active production phase':      '#27ae60',
+  'sold | project intake phase':  '#9b59b6',
+};
+
+function getJTColor(status) {
+  return JT_STATUS_COLORS[(status || '').toLowerCase()] || '#9b59b6';
+}
+
+function getJTCategory(status) {
+  const s = (status || '').toLowerCase();
+  if (s.includes('active')) return 'jt-active';
+  return 'jt-sold';
+}
+
+// GHL stage → category mapping
+// Proposal = bright yellow (#f1c40f) — very distinct from Permitting = red (#e74c3c)
+function getGHLCategory(stageName) {
+  const s = (stageName || '').toLowerCase();
+  if (s.includes('permitting')) return 'ghl-permitting';
+  if (s.includes('proposal')) return 'ghl-proposal';
+  if (s.includes('consultation') || s.includes('consult')) return 'ghl-consult';
+  if (s.includes('appoint') || s.includes('booked')) return 'ghl-appt';
+  if (s.includes('closed') || s.includes('won') || s.includes('lost') || s.includes('opportunity')) return null;
+  return 'ghl-appt';
+}
+
+const GHL_CATEGORY_COLORS = {
+  'ghl-appt':       '#ff6b35',  // Orange
+  'ghl-consult':    '#e91e8c',  // Hot pink
+  'ghl-proposal':   '#f1c40f',  // Bright yellow (very distinct from permitting)
+  'ghl-permitting': '#e74c3c',  // Red (very distinct from proposal)
+};
+
+function getGHLColor(stageName) {
+  return GHL_CATEGORY_COLORS[getGHLCategory(stageName)] || '#ff6b35';
+}
+
+// ─── ZONE POLYGONS ───────────────────────────────────────────────────────────
+
+ZONES_PLACEHOLDER
+
+// ─── ZONE UTILITIES ──────────────────────────────────────────────────────────
+
+function pointInPolygon(point, polygon) {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function getZoneForCoords(lng, lat) {
+  for (const [zoneName, zone] of Object.entries(ZONES)) {
+    if (pointInPolygon([lng, lat], zone.coords)) return zoneName;
+  }
+  return 'Outside Service Area';
+}
+
+// ─── ZONE FILTER ─────────────────────────────────────────────────────────────
+
+const ZONE_CHIP_MAP = {
+  'Zone 1': 'zonechip-1',
+  'Zone 2A': 'zonechip-2a',
+  'Zone 2B': 'zonechip-2b',
+  'Zone 3A': 'zonechip-3a',
+  'Zone 3B': 'zonechip-3b',
+  'Zone 4A': 'zonechip-4a',
+  'Zone 4B': 'zonechip-4b',
+  'Zone 5A': 'zonechip-5a',
+  'Zone 5B': 'zonechip-5b',
+};
+
+const activeZones = new Set(Object.keys(ZONE_CHIP_MAP));
+activeZones.add('Outside Service Area');
+
+function toggleZoneChip(zoneName) {
+  const chipId = ZONE_CHIP_MAP[zoneName];
+  if (!chipId) return;
+  const chip = document.getElementById(chipId);
+  if (activeZones.has(zoneName)) {
+    activeZones.delete(zoneName);
+    chip.classList.remove('active');
+    chip.classList.add('inactive');
+  } else {
+    activeZones.add(zoneName);
+    chip.classList.add('active');
+    chip.classList.remove('inactive');
+  }
+  applyFilters();
+}
+
+// ─── GEOCODE FOR SEARCH ───────────────────────────────────────────────────────
+
+async function geocodeAddress(address) {
+  const token = mapboxgl.accessToken;
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${token}&country=US&bbox=-113.5,32.5,-110.5,34.5`;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (data.features && data.features.length > 0) return data.features[0].center;
+  return null;
+}
+
+// ─── SEARCH BOX ──────────────────────────────────────────────────────────────
+
+let searchMarker = null;
+const searchBox = document.getElementById('search-box');
+const autocompleteList = document.getElementById('autocomplete-list');
+let autocompleteTimeout = null;
+let selectedIdx = -1;
+let autocompleteResults = [];
+
+// Build a flat searchable index of all mapped items
+function buildSearchIndex() {
+  const idx = [];
+  // Suppliers
+  const supplierSets = [
+    {key:'siteone',stores:typeof SITEONE_STORES!=='undefined'?SITEONE_STORES:[]},
+    {key:'rock',stores:typeof ROCK_STORES!=='undefined'?ROCK_STORES:[]},
+    {key:'tile',stores:typeof TILE_STORES!=='undefined'?TILE_STORES:[]},
+    {key:'hardscape',stores:typeof HARDSCAPE_STORES!=='undefined'?HARDSCAPE_STORES:[]},
+    {key:'floordecor',stores:typeof FLOOR_DECOR_STORES!=='undefined'?FLOOR_DECOR_STORES:[]},
+    {key:'horizon',stores:typeof HORIZON_STORES!=='undefined'?HORIZON_STORES:[]},
+    {key:'bbq',stores:typeof BBQ_STORES!=='undefined'?BBQ_STORES:[]},
+    {key:'other',stores:typeof OTHER_STORES!=='undefined'?OTHER_STORES:[]},
+    {key:'nursery',stores:typeof NURSERY_STORES!=='undefined'?NURSERY_STORES:[]},
+    {key:'plumbing',stores:typeof PLUMBING_STORES!=='undefined'?PLUMBING_STORES:[]},
+    {key:'misc',stores:typeof MISC_STORES!=='undefined'?MISC_STORES:[]},
+  ];
+  supplierSets.forEach(({key, stores}) => {
+    stores.forEach(s => {
+      idx.push({
+        type: 'supplier', layer: key,
+        name: s.name, address: s.address || '',
+        lat: s.lat || s.latitude, lng: s.lng || s.lon || s.longitude,
+        notes: s.notes || ''
+      });
+    });
+  });
+  // JobTread jobs
+  if (typeof JT_JOBS !== 'undefined') {
+    JT_JOBS.forEach(j => {
+      const jlng = j.lon !== undefined ? j.lon : j.lng;
+      if (j.lat && jlng) idx.push({
+        type: 'job', layer: 'jobtread',
+        name: j.name, address: j.address || (j.location && j.location.address) || '',
+        lat: j.lat, lng: jlng,
+        notes: j.custom_job_status || j.status || ''
+      });
+    });
+  }
+  // GHL opportunities
+  if (typeof GHL_OPPS !== 'undefined') {
+    GHL_OPPS.forEach(o => {
+      const olng = o.lon !== undefined ? o.lon : o.lng;
+      if (o.lat && olng) idx.push({
+        type: 'ghl', layer: 'ghl',
+        name: o.name, address: o.full_address || o.address || '',
+        lat: o.lat, lng: olng,
+        notes: o.stage_name || ''
+      });
+    });
+  }
+  return idx;
+}
+
+let searchIndex = [];
+window.addEventListener('load', () => { setTimeout(() => { searchIndex = buildSearchIndex(); }, 1500); });
+
+function searchMappedItems(query) {
+  const q = query.toLowerCase();
+  return searchIndex.filter(item =>
+    item.name.toLowerCase().includes(q) ||
+    (item.address && item.address.toLowerCase().includes(q))
+  ).slice(0, 5);
+}
+
+const LAYER_ICONS = {
+  supplier: '🏪', jobtread: '🔨', ghl: '📋'
+};
+
+searchBox.addEventListener('input', () => {
+  const val = searchBox.value.trim();
+  document.getElementById('search-clear').style.display = val ? 'block' : 'none';
+  clearTimeout(autocompleteTimeout);
+  if (val.length < 2) { autocompleteList.style.display = 'none'; return; }
+  autocompleteTimeout = setTimeout(async () => {
+    // First: search mapped items
+    const mapped = searchMappedItems(val);
+    // Then: geocode suggestions from Mapbox
+    let geoResults = [];
+    try {
+      const token = mapboxgl.accessToken;
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(val)}.json?access_token=${token}&country=US&bbox=-113.5,32.5,-110.5,34.5&limit=4&types=address,place,neighborhood`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      geoResults = data.features || [];
+    } catch(e) {}
+    autocompleteResults = [
+      ...mapped.map(m => ({_type:'mapped', item:m})),
+      ...geoResults.map(f => ({_type:'geo', feature:f}))
+    ];
+    selectedIdx = -1;
+    if (autocompleteResults.length === 0) { autocompleteList.style.display = 'none'; return; }
+    autocompleteList.innerHTML = autocompleteResults.map((r, i) => {
+      if (r._type === 'mapped') {
+        const m = r.item;
+        const icon = LAYER_ICONS[m.type] || '📌';
+        return `<div class="autocomplete-item" data-idx="${i}" onclick="selectAutocomplete(${i})">
+          <span class="autocomplete-icon">${icon}</span>
+          <div><div class="autocomplete-main">${m.name}</div><div class="autocomplete-sub">${m.address}${m.notes ? ' · ' + m.notes : ''}</div></div>
+        </div>`;
+      } else {
+        const parts = r.feature.place_name.split(',');
+        return `<div class="autocomplete-item" data-idx="${i}" onclick="selectAutocomplete(${i})">
+          <span class="autocomplete-icon">📍</span>
+          <div><div class="autocomplete-main">${parts[0]}</div><div class="autocomplete-sub">${parts.slice(1).join(',').trim()}</div></div>
+        </div>`;
+      }
+    }).join('');
+    autocompleteList.style.display = 'block';
+  }, 250);
+});
+
+searchBox.addEventListener('keydown', (e) => {
+  const items = autocompleteList.querySelectorAll('.autocomplete-item');
+  if (e.key === 'ArrowDown') { selectedIdx = Math.min(selectedIdx + 1, items.length - 1); items.forEach((el, i) => el.classList.toggle('selected', i === selectedIdx)); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { selectedIdx = Math.max(selectedIdx - 1, 0); items.forEach((el, i) => el.classList.toggle('selected', i === selectedIdx)); e.preventDefault(); }
+  else if (e.key === 'Enter') { if (selectedIdx >= 0) selectAutocomplete(selectedIdx); else if (autocompleteResults.length > 0) selectAutocomplete(0); else performSearch(); }
+  else if (e.key === 'Escape') { autocompleteList.style.display = 'none'; }
+});
+
+function selectAutocomplete(idx) {
+  const r = autocompleteResults[idx];
+  if (!r) return;
+  autocompleteList.style.display = 'none';
+  if (r._type === 'mapped') {
+    const m = r.item;
+    searchBox.value = m.name;
+    showSearchResult(m.lng, m.lat, m.name + (m.address ? ', ' + m.address : ''));
+  } else {
+    const f = r.feature;
+    searchBox.value = f.place_name.split(',')[0];
+    const [lng, lat] = f.geometry.coordinates;
+    showSearchResult(lng, lat, f.place_name);
+  }
+}
+
+async function performSearch() {
+  const val = searchBox.value.trim();
+  if (!val) return;
+  const coords = await geocodeAddress(val);
+  if (coords) showSearchResult(coords[0], coords[1], val);
+  else document.getElementById('search-result').innerHTML = '<span style="color:#e74c3c;">Address not found in service area</span>';
+}
+
+function showSearchResult(lng, lat, label) {
+  if (searchMarker) searchMarker.remove();
+  const zone = getZoneForCoords(lng, lat);
+  const zoneColor = ZONES[zone]?.color || '#aaa';
+  const el = document.createElement('div');
+  el.style.cssText = `width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid ${zoneColor};box-shadow:0 0 10px ${zoneColor};`;
+  searchMarker = new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map);
+  map.flyTo({ center: [lng, lat], zoom: 12, speed: 1.2 });
+  const resultEl = document.getElementById('search-result');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `<div style="font-weight:700;color:#fff;margin-bottom:4px;">${label.split(',')[0]}</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.5);">${label.split(',').slice(1).join(',').trim()}</div>
+    <div style="margin-top:8px;padding:6px 10px;border-radius:8px;background:rgba(${zoneColor.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.15);border:1px solid rgba(${zoneColor.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.4);color:${zoneColor};font-weight:700;font-size:12px;">
+      📍 ${zone}
+    </div>`;
+}
+
+function clearSearch() {
+  searchBox.value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  document.getElementById('search-result').style.display = 'none';
+  autocompleteList.style.display = 'none';
+  if (searchMarker) { searchMarker.remove(); searchMarker = null; }
+}
+
+searchBox.addEventListener('blur', () => { setTimeout(() => { autocompleteList.style.display = 'none'; }, 150); });
+
+// ─── SUPPLIER LAYER TOGGLE ───────────────────────────────────────────────────
+
+const supplierMarkers = {
+  homedepot: [], siteone: [], sprinklerworld: [], ace: [],
+  turf: [], rock: [], tile: [], hardscape: [],
+  floordecor: [], horizon: [], bbq: [], other: [],
+  nursery: [], plumbing: [], pool: [], misc: []
+};
+const supplierVisible = {
+  homedepot: false, siteone: false, sprinklerworld: false, ace: false,
+  turf: false, rock: false, tile: false, hardscape: false,
+  floordecor: false, horizon: false, bbq: false, other: false,
+  nursery: false, plumbing: false, pool: false, misc: false
+};
+
+const TURF_STORES = TURF_DATA_PLACEHOLDER;
+const ROCK_STORES = ROCK_DATA_PLACEHOLDER;
+const TILE_STORES = TILE_DATA_PLACEHOLDER;
+const HARDSCAPE_STORES = HARDSCAPE_DATA_PLACEHOLDER;
+const FLOOR_DECOR_STORES = FLOOR_DECOR_DATA_PLACEHOLDER;
+const HORIZON_STORES = HORIZON_DATA_PLACEHOLDER;
+const BBQ_STORES = BBQ_DATA_PLACEHOLDER;
+const OTHER_STORES = OTHER_DATA_PLACEHOLDER;
+const NURSERY_STORES = NURSERY_DATA_PLACEHOLDER;
+const PLUMBING_STORES = PLUMBING_DATA_PLACEHOLDER;
+const POOL_STORES = POOL_DATA_PLACEHOLDER;
+const MISC_STORES = MISC_DATA_PLACEHOLDER;
+
+function createStarSVG(color, size) {
+  const s = size || 22;
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    const r = i % 2 === 0 ? s / 2 : s / 5;
+    pts.push(`${s/2 + r * Math.cos(angle)},${s/2 + r * Math.sin(angle)}`);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <polygon points="${pts.join(' ')}" fill="${color}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"
+      style="filter:drop-shadow(0 0 4px ${color})"/>
+  </svg>`;
+}
+
+function createTriangleSVG(color, size) {
+  const s = size || 22;
+  const pad = s * 0.1;
+  const pts = `${s/2},${pad} ${s-pad},${s-pad} ${pad},${s-pad}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <polygon points="${pts}" fill="${color}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"
+      style="filter:drop-shadow(0 0 4px ${color})"/>
+  </svg>`;
+}
+
+function createFireSVG(color, size) {
+  const s = size || 24;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24">
+    <path d="M12 2 C10 6 7 8 7 12 C7 15.3 9.2 18 12 18 C14.8 18 17 15.3 17 12 C17 10 15.5 8.5 14 7 C14 9 13 10.5 12 11 C12 8 12.5 5 12 2 Z" fill="${color}" stroke="rgba(255,255,255,0.7)" stroke-width="0.8" style="filter:drop-shadow(0 0 5px ${color})"/>
+    <path d="M12 13 C11 14 10.5 15 11 16.5 C11.5 18 12 18 12 18 C12 18 12.5 18 13 16.5 C13.5 15 13 14 12 13 Z" fill="#fff" opacity="0.5"/>
+  </svg>`;
+}
+
+function createHerbSVG(color, size) {
+  const s = size || 22;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24">
+    <path d="M12 22 C12 22 12 14 12 12" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M12 16 C12 16 8 14 7 10 C9 10 11 12 12 14" fill="${color}" opacity="0.9"/>
+    <path d="M12 13 C12 13 16 11 17 7 C15 7 13 9 12 11" fill="${color}"/>
+    <path d="M12 19 C12 19 9 17 8 14" stroke="${color}" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    <circle cx="12" cy="22" r="1.5" fill="${color}" opacity="0.6"/>
+  </svg>`;
+}
+
+function createWaterSVG(color, size) {
+  const s = size || 22;
+  // Water drop shape using SVG path
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24">
+    <path d="M12 2 C12 2 4 10 4 15 C4 19.4 7.6 23 12 23 C16.4 23 20 19.4 20 15 C20 10 12 2 12 2 Z"
+      fill="${color}" stroke="rgba(255,255,255,0.8)" stroke-width="1.2"
+      style="filter:drop-shadow(0 0 4px ${color})"/>
+  </svg>`;
+}
+
+function createDiamondSVG(color, size) {
+  const s = size || 20;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <rect x="${s*0.15}" y="${s*0.15}" width="${s*0.7}" height="${s*0.7}" rx="2" fill="${color}"
+      stroke="rgba(255,255,255,0.9)" stroke-width="1.5" transform="rotate(45 ${s/2} ${s/2})"
+      style="filter:drop-shadow(0 0 4px ${color})"/>
+  </svg>`;
+}
+
+function createSupplierPopup(store, brand) {
+  const colors = {
+    homedepot: '#f96302', siteone: '#2ecc71', sprinklerworld: '#3498db', ace: '#e74c3c',
+    turf: '#a8e063', rock: '#d4a017', tile: '#9b59b6', hardscape: '#e91e8c',
+    floordecor: '#00bcd4', horizon: '#4caf50', bbq: '#ff9800', other: '#7ab8ff'
+  };
+  const labels = {
+    homedepot: 'Home Depot', siteone: 'SiteOne Family', sprinklerworld: 'Sprinkler World', ace: 'Ace Hardware',
+    turf: 'Turf Supplier', rock: 'Rock & Aggregate', tile: 'Tile & Stone', hardscape: 'Hardscapes',
+    floordecor: 'Floor & Decor', horizon: 'Horizon Supply', bbq: 'BBQ / Outdoor Living', other: 'RWC'
+  };
+  const color = colors[brand] || '#fff';
+  const label = labels[brand] || brand;
+  const showroomBadge = store.showroom ? `<div style="display:inline-block;padding:2px 8px;border-radius:12px;background:rgba(255,215,0,0.15);color:#ffd700;border:1px solid rgba(255,215,0,0.4);font-size:10px;font-weight:700;margin-bottom:6px;">★ SHOWROOM</div><br>` : '';
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + ' ' + store.address)}`;
+  const rgb = color.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',');
+  const noteHtml = store.notes ? `<div class="popup-row" style="font-style:italic;color:rgba(255,255,255,0.5);margin-top:4px;">"${store.notes}"</div>` : '';
+  const rankHtml = store.ranking ? `<div class="popup-row">Ranking: <span style="color:${color};font-weight:600;">${store.ranking}</span></div>` : '';
+  return `<div class="popup-inner">
+    <div class="popup-title" style="color:${color};">${store.name}</div>
+    ${showroomBadge}
+    <div class="popup-badge" style="background:rgba(${rgb},0.15);color:${color};border:1px solid rgba(${rgb},0.3);">${label}</div>
+    ${store.type ? `<div class="popup-row">Type: <span>${store.type}</span></div>` : ''}
+    <div class="popup-row">Address: <span>${store.address || 'N/A'}</span></div>
+    ${store.phone ? `<div class="popup-row">Phone: <span>${store.phone}</span></div>` : ''}
+    ${rankHtml}
+    ${noteHtml}
+    ${store.distance_miles ? `<div class="popup-row">Distance: <span>${store.distance_miles} mi from office</span></div>` : ''}
+    ${store.pro_phone ? `<div class="popup-row" style="color:${color};font-weight:600;">Pro Services: <span style="color:${color};">${store.pro_phone}</span></div>` : ''}
+    <a class="popup-link" href="${mapsUrl}" target="_blank" style="color:${color};border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);">Open in Google Maps →</a>
+  </div>`;
+}
+
+function toggleSupplier(key) {
+  const btn = document.getElementById(`btn-${key}`);
+  supplierVisible[key] = !supplierVisible[key];
+  if (supplierVisible[key]) {
+    btn.textContent = 'ON'; btn.classList.add('active');
+    supplierMarkers[key].forEach(m => m.addTo(map));
+  } else {
+    btn.textContent = 'OFF'; btn.classList.remove('active');
+    supplierMarkers[key].forEach(m => m.remove());
+  }
+}
+
+function toggleAllSuppliers(on) {
+  Object.keys(supplierMarkers).forEach(key => {
+    const btn = document.getElementById(`btn-${key}`);
+    if (!btn) return;
+    supplierVisible[key] = on;
+    if (on) {
+      btn.textContent = 'ON'; btn.classList.add('active');
+      supplierMarkers[key].forEach(m => m.addTo(map));
+    } else {
+      btn.textContent = 'OFF'; btn.classList.remove('active');
+      supplierMarkers[key].forEach(m => m.remove());
+    }
+  });
+}
+
+function makeSupplierMarker(store, brand, svgFn, color, size) {
+  const el = document.createElement('div');
+  el.style.cssText = `cursor:pointer;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 4px ${color});transition:filter 0.15s;`;
+  el.innerHTML = svgFn(color, size);
+  el.addEventListener('mouseenter', () => { el.style.filter = `drop-shadow(0 0 8px ${color}) drop-shadow(0 0 4px #fff)`; showLabel(store.name, el); });
+  el.addEventListener('mouseleave', () => { el.style.filter = `drop-shadow(0 0 4px ${color})`; hideLabel(); });
+  const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createSupplierPopup(store, brand));
+  const lng = store.lon !== undefined ? store.lon : store.lng;
+  return new mapboxgl.Marker(el).setLngLat([lng, store.lat]).setPopup(popup);
+}
+
+function makeShowroomSVG(color, size) {
+  const s = size || 28;
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    const r = i % 2 === 0 ? s / 2 : s / 4;
+    pts.push(`${s/2 + r * Math.cos(angle)},${s/2 + r * Math.sin(angle)}`);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <polygon points="${pts.join(' ')}" fill="${color}" stroke="#ffd700" stroke-width="2"
+      style="filter:drop-shadow(0 0 6px ${color}) drop-shadow(0 0 3px #ffd700)"/>
+    <text x="${s/2}" y="${s/2+4}" text-anchor="middle" font-size="9" fill="#000" font-weight="bold">★</text>
+  </svg>`;
+}
+
+function initSupplierLayers() {
+  // Home Depot - orange stars
+  HD_STORES.forEach(store => {
+    supplierMarkers.homedepot.push(makeSupplierMarker(store, 'homedepot', createTriangleSVG, '#f96302', 24));
+  });
+  document.getElementById('hd-count').textContent = `(${HD_STORES.length})`;
+
+  // SiteOne - green diamonds
+  SITEONE_STORES.forEach(store => {
+    supplierMarkers.siteone.push(makeSupplierMarker(store, 'siteone', createDiamondSVG, '#2ecc71', 22));
+  });
+  document.getElementById('siteone-count').textContent = `(${SITEONE_STORES.length})`;
+
+  // Sprinkler World - blue diamonds
+  SW_STORES.forEach(store => {
+    supplierMarkers.sprinklerworld.push(makeSupplierMarker(store, 'sprinklerworld', createDiamondSVG, '#3498db', 22));
+  });
+  document.getElementById('sw-count').textContent = `(${SW_STORES.length})`;
+
+  // Ace Hardware - red stars
+  ACE_STORES.forEach(store => {
+    supplierMarkers.ace.push(makeSupplierMarker(store, 'ace', createStarSVG, '#e74c3c', 22));
+  });
+  document.getElementById('ace-count').textContent = `(${ACE_STORES.length})`;
+
+  // Turf - lime green diamonds
+  TURF_STORES.forEach(store => {
+    supplierMarkers.turf.push(makeSupplierMarker(store, 'turf', createDiamondSVG, '#a8e063', 20));
+  });
+  document.getElementById('turf-count').textContent = `(${TURF_STORES.length})`;
+
+  // Rock & Aggregate - dark gold diamonds
+  ROCK_STORES.forEach(store => {
+    supplierMarkers.rock.push(makeSupplierMarker(store, 'rock', createDiamondSVG, '#d4a017', 20));
+  });
+  document.getElementById('rock-count').textContent = `(${ROCK_STORES.length})`;
+
+  // Tile & Stone - purple (showrooms get big star)
+  TILE_STORES.forEach(store => {
+    const fn = store.showroom ? makeShowroomSVG : createDiamondSVG;
+    const sz = store.showroom ? 28 : 20;
+    supplierMarkers.tile.push(makeSupplierMarker(store, 'tile', fn, '#9b59b6', sz));
+  });
+  document.getElementById('tile-count').textContent = `(${TILE_STORES.length})`;
+
+  // Hardscapes - hot pink (showrooms get big star)
+  HARDSCAPE_STORES.forEach(store => {
+    const fn = store.showroom ? makeShowroomSVG : createDiamondSVG;
+    const sz = store.showroom ? 28 : 20;
+    supplierMarkers.hardscape.push(makeSupplierMarker(store, 'hardscape', fn, '#e91e8c', sz));
+  });
+  document.getElementById('hardscape-count').textContent = `(${HARDSCAPE_STORES.length})`;
+
+  // Floor & Decor - cyan stars (all showrooms)
+  FLOOR_DECOR_STORES.forEach(store => {
+    supplierMarkers.floordecor.push(makeSupplierMarker(store, 'floordecor', makeShowroomSVG, '#00bcd4', 28));
+  });
+  document.getElementById('floordecor-count').textContent = `(${FLOOR_DECOR_STORES.length})`;
+
+  // Horizon Supply - green diamonds
+  HORIZON_STORES.forEach(store => {
+    supplierMarkers.horizon.push(makeSupplierMarker(store, 'horizon', createDiamondSVG, '#4caf50', 20));
+  });
+  document.getElementById('horizon-count').textContent = `(${HORIZON_STORES.length})`;
+
+  // BBQ / Outdoor Living - orange stars (all showrooms)
+  BBQ_STORES.forEach(store => {
+    supplierMarkers.bbq.push(makeSupplierMarker(store, 'bbq', createFireSVG, '#ff6b00', 26));
+  });
+  document.getElementById('bbq-count').textContent = `(${BBQ_STORES.length})`;
+
+  // RWC - light blue diamonds
+  OTHER_STORES.forEach(store => {
+    supplierMarkers.other.push(makeSupplierMarker(store, 'other', createDiamondSVG, '#7ab8ff', 20));
+  });
+  document.getElementById('other-count').textContent = `(${OTHER_STORES.length})`;
+
+  // Nurseries - medium green diamonds
+  NURSERY_STORES.forEach(store => {
+    supplierMarkers.nursery.push(makeSupplierMarker(store, 'nursery', createHerbSVG, '#66bb6a', 22));
+  });
+  document.getElementById('nursery-count').textContent = `(${NURSERY_STORES.length})`;
+
+  // Plumbing & Fixtures - light cyan stars (all showrooms)
+  PLUMBING_STORES.forEach(store => {
+    supplierMarkers.plumbing.push(makeSupplierMarker(store, 'plumbing', makeShowroomSVG, '#80deea', 28));
+  });
+  document.getElementById('plumbing-count').textContent = `(${PLUMBING_STORES.length})`;
+
+  // Pool & Fountain - water blue drop icons
+  POOL_STORES.forEach(store => {
+    const color = store.showroom ? '#00bcd4' : '#29b6f6';
+    supplierMarkers.pool.push(makeSupplierMarker(store, 'pool', createWaterSVG, color, 22));
+  });
+  document.getElementById('pool-count').textContent = `(${POOL_STORES.length})`;
+
+  // Miscellaneous - gold diamonds
+  MISC_STORES.forEach(store => {
+    supplierMarkers.misc.push(makeSupplierMarker(store, 'misc', createDiamondSVG, '#ffd54f', 20));
+  });
+  document.getElementById('misc-count').textContent = `(${MISC_STORES.length})`;
+}
+
+// ─── WEATHER RISK ─────────────────────────────────────────────────────────────
+
+let weatherRiskActive = false;
+let zoneFlashIntervals = {};
+
+function initWeatherRisk() {
+  if (!WEATHER_RISK || !WEATHER_RISK.has_risk) return;
+
+  const risks = WEATHER_RISK.risks || [];
+  if (risks.length === 0) return;
+
+  weatherRiskActive = true;
+
+  const bannerEl = document.getElementById('weather-banner');
+  const bannerText = document.getElementById('banner-text');
+  const riskLabels = risks.map(r => r.label).join(' · ');
+  bannerText.textContent = `Weather Alert: ${riskLabels}`;
+  bannerEl.style.display = 'flex';
+  document.getElementById('filter-toolbar').classList.add('banner-shown');
+
+  const riskPanel = document.getElementById('weather-risk-panel');
+  const riskItems = document.getElementById('weather-risk-items');
+  riskPanel.style.display = 'block';
+  const icons = { wind: '💨', rain: '🌧', special: '⚠️', alert: '🚨' };
+  riskItems.innerHTML = risks.map(r => `<div class="risk-item">${icons[r.type]||'⚠️'} ${r.label}</div>`).join('');
+}
+
+function applyWeatherZoneFlash() {
+  if (!weatherRiskActive) return;
+  Object.keys(ZONES).forEach(zoneName => {
+    const layerId = `zone-fill-${zoneName}`;
+    if (map.getLayer(layerId)) {
+      try {
+        map.setPaintProperty(layerId, 'fill-color', '#e67e22');
+        map.setPaintProperty(layerId, 'fill-opacity', 0.28);
+      } catch(e) {}
+    }
+  });
+}
+
+function stopWeatherFlash() {
+  Object.keys(ZONES).forEach(zoneName => {
+    const layerId = `zone-fill-${zoneName}`;
+    if (map.getLayer(layerId)) {
+      try {
+        map.setPaintProperty(layerId, 'fill-color', ZONES[zoneName].color);
+        map.setPaintProperty(layerId, 'fill-opacity', ZONES[zoneName].opacity);
+      } catch(e) {}
+    }
+  });
+}
+
+// ─── WEATHER TOGGLE ───────────────────────────────────────────────────────────
+
+let weatherOn = false;
+function toggleWeather() {
+  const btn = document.getElementById('btn-radar');
+  weatherOn = !weatherOn;
+  if (weatherOn) {
+    map.setLayoutProperty('weather-layer', 'visibility', 'visible');
+    btn.textContent = 'ON'; btn.classList.add('active');
+  } else {
+    map.setLayoutProperty('weather-layer', 'visibility', 'none');
+    btn.textContent = 'OFF'; btn.classList.remove('active');
+  }
+}
+
+// ─── POPUP BUILDER ───────────────────────────────────────────────────────────
+
+const GHL_LOC = 'T8yugiCGYxTDnfZR9xG6';
+
+function createJTPopup(job) {
+  const status = job.status || 'Sold | Project Intake Phase';
+  const color = getJTColor(status);
+  const zone = getZoneForCoords(job.lon, job.lat);
+  const addr = job.location?.address || 'N/A';
+  const jtLink = `https://app.jobtread.com/jobs/${job.id}`;
+  const ghlLink = job.ghlId
+    ? `https://app.gohighlevel.com/v2/location/${GHL_LOC}/opportunities/list?id=${job.ghlId}`
+    : `https://app.gohighlevel.com/v2/location/${GHL_LOC}/contacts/list`;
+  const isActive = getJTCategory(status) === 'jt-active';
+  const weatherBadge = isActive && weatherRiskActive
+    ? `<div class="weather-risk-badge">⚠️ Weather Risk Today</div>`
+    : '';
+  const statusLabel = status.includes('Active') ? 'Active Production' : 'Sold / Project Intake';
+  const zillowUrl = addr !== 'N/A' ? `https://www.zillow.com/homes/${encodeURIComponent(addr)}_rb/` : null;
+  const assessorUrl = addr !== 'N/A' ? `https://mcassessor.maricopa.gov/mcs/?q=${encodeURIComponent(addr)}` : null;
+  const driveBtn = job.driveUrl ? `<a class="popup-link" href="${job.driveUrl}" target="_blank" style="flex:1;text-align:center;color:#34a853;border-color:rgba(52,168,83,0.3);background:rgba(52,168,83,0.1);">Drive ↗</a>` : '';
+  const extraLinks = (zillowUrl || assessorUrl || driveBtn) ? `
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      ${zillowUrl ? `<a class="popup-link" href="${zillowUrl}" target="_blank" style="flex:1;text-align:center;color:#006aff;border-color:rgba(0,106,255,0.3);background:rgba(0,106,255,0.1);">Zillow →</a>` : ''}
+      ${addr !== 'N/A' ? `<button class="popup-link" onclick="navigator.clipboard.writeText('${addr.replace(/'/g,"\\'")}')
+ .then(()=>{window.open('https://mcassessor.maricopa.gov/','_blank')})" style="flex:1;text-align:center;color:#f39c12;border-color:rgba(243,156,18,0.3);background:rgba(243,156,18,0.1);cursor:pointer;">Assessor →</button>` : ''}
+      ${driveBtn}
+    </div>` : '';
+  return `<div class="popup-inner">
+    <div class="popup-title">${job.name || 'Job'}</div>    ${weatherBadge}
+    <div class="popup-badge" style="background:rgba(${color.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.15);color:${color};border:1px solid rgba(${color.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.3);">${statusLabel}</div>
+    <div class="popup-row">Job #: <span>${job.number || 'N/A'}</span></div>
+    <div class="popup-row">Zone: <span style="color:${ZONES[zone]?.color||'#aaa'};font-weight:700;">${zone}</span></div>
+    <div class="popup-row" style="display:flex;align-items:center;gap:6px;">Address: <span style="flex:1;">${addr}</span><button onclick="navigator.clipboard.writeText('${addr.replace(/'/g,"\\'")}') .then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='📋',1200)})" title="Copy address" style="background:rgba(100,160,255,0.15);border:1px solid rgba(100,160,255,0.3);color:#7ab8ff;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;">📋</button></div>
+    <div style="display:flex;gap:6px;margin-top:10px;">
+      <a class="popup-link" href="${jtLink}" target="_blank" style="flex:1;text-align:center;">JobTread →</a>
+      <a class="popup-link" href="${ghlLink}" target="_blank" style="flex:1;text-align:center;color:#e74c3c;border-color:rgba(231,76,60,0.3);background:rgba(231,76,60,0.1);">GHL →</a>
+    </div>
+    ${extraLinks}
+  </div>`;
+}
+
+function formatApptDate(dateStr) {
+  if (!dateStr) return null;
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { timeZone: 'America/Phoenix', weekday: 'short', month: 'short', day: 'numeric' })
+      + ' at ' + d.toLocaleTimeString('en-US', { timeZone: 'America/Phoenix', hour: 'numeric', minute: '2-digit' });
+  } catch(e) { return dateStr; }
+}
+
+function createGHLPopup(opp) {
+  const color = getGHLColor(opp.stage_name);
+  const zone = getZoneForCoords(opp.lon, opp.lat);
+  const addr = opp.full_address || 'N/A';
+  const ghlLink = `https://app.gohighlevel.com/v2/location/${GHL_LOC}/contacts/detail/${opp.contactId}`;
+  const jtLink = opp.jtUrl || `https://app.jobtread.com/jobs`;
+  const jtMatched = !!(opp.jtUrl);
+  const jtLabel = jtMatched ? `JT: ${opp.jtMatchName || 'Job'} →` : 'JobTread ↗';
+  const isAppt = getGHLCategory(opp.stage_name) === 'ghl-appt';
+  const apptHtml = isAppt && opp.appt_start
+    ? `<div class="popup-row">📅 Appt: <span style="color:#ff6b35;font-weight:600;">${formatApptDate(opp.appt_start)}</span></div>`
+    : '';
+  const zillowUrl = addr !== 'N/A' ? `https://www.zillow.com/homes/${encodeURIComponent(addr)}_rb/` : null;
+  const assessorUrl = addr !== 'N/A' ? `https://mcassessor.maricopa.gov/mcs/?q=${encodeURIComponent(addr)}` : null;  const driveBtn = opp.driveUrl ? `<a class="popup-link" href="${opp.driveUrl}" target="_blank" style="flex:1;text-align:center;color:#34a853;border-color:rgba(52,168,83,0.3);background:rgba(52,168,83,0.1);">Drive ↗</a>` : '';
+  const extraLinks = (zillowUrl || assessorUrl || driveBtn) ? `
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      ${zillowUrl ? `<a class="popup-link" href="${zillowUrl}" target="_blank" style="flex:1;text-align:center;color:#006aff;border-color:rgba(0,106,255,0.3);background:rgba(0,106,255,0.1);">Zillow →</a>` : ''}
+      ${addr !== 'N/A' ? `<button class="popup-link" onclick="navigator.clipboard.writeText('${addr.replace(/'/g,"\\'")}')
+ .then(()=>{window.open('https://mcassessor.maricopa.gov/','_blank')})" style="flex:1;text-align:center;color:#f39c12;border-color:rgba(243,156,18,0.3);background:rgba(243,156,18,0.1);cursor:pointer;">Assessor →</button>` : ''}
+      ${driveBtn}
+    </div>` : '';
+  return `<div class="popup-inner">
+    <div class="popup-title">${opp.name || 'Lead'}</div>
+    <div class="popup-badge" style="background:rgba(255,255,255,0.08);color:${color};border:1px solid rgba(255,255,255,0.15);">${opp.stage_name || 'Unknown'}</div>
+    ${apptHtml}
+    <div class="popup-row">Zone: <span style="color:${ZONES[zone]?.color||'#aaa'};font-weight:700;">${zone}</span></div>
+    <div class="popup-row" style="display:flex;align-items:center;gap:6px;">Address: <span style="flex:1;">${addr}</span><button onclick="navigator.clipboard.writeText('${addr.replace(/'/g,"\\'")}') .then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='📋',1200)})" title="Copy address" style="background:rgba(100,160,255,0.15);border:1px solid rgba(100,160,255,0.3);color:#7ab8ff;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;">📋</button></div>
+    ${opp.monetaryValue ? `<div class="popup-row">Value: <span>$${opp.monetaryValue.toLocaleString()}</span></div>` : ''}
+    <div style="display:flex;gap:6px;margin-top:10px;">
+      <a class="popup-link" href="${ghlLink}" target="_blank" style="flex:1;text-align:center;color:#e74c3c;border-color:rgba(231,76,60,0.3);background:rgba(231,76,60,0.1);">GHL →</a>
+      <a class="popup-link" href="${jtLink}" target="_blank" style="flex:1;text-align:center;${jtMatched ? 'color:#27ae60;border-color:rgba(39,174,96,0.4);background:rgba(39,174,96,0.12);font-weight:700;' : 'opacity:0.5;'}">${jtLabel}</a>
+    </div>
+    ${extraLinks}
+  </div>`;
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+
+function buildDashboard() {
+  const jtCounts = { 'jt-active': 0, 'jt-sold': 0 };
+  JT_JOBS.forEach(j => { const cat = getJTCategory(j.status); jtCounts[cat] = (jtCounts[cat]||0)+1; });
+
+  const ghlCounts = { 'ghl-appt': 0, 'ghl-consult': 0, 'ghl-proposal': 0, 'ghl-permitting': 0 };
+  GHL_OPPS.forEach(o => { const cat = getGHLCategory(o.stage_name); if (cat) ghlCounts[cat] = (ghlCounts[cat]||0)+1; });
+
+  const jtLabels = { 'jt-active': 'Active Production', 'jt-sold': 'Sold / Intake' };
+  const jtColors = { 'jt-active': '#27ae60', 'jt-sold': '#9b59b6' };
+  let jtHtml = '';
+  ['jt-active','jt-sold'].forEach(cat => {
+    if (jtCounts[cat]) jtHtml += `<div class="dash-row"><div class="dash-dot" style="background:${jtColors[cat]}"></div><div class="dash-label">${jtLabels[cat]}</div><div class="dash-count">${jtCounts[cat]}</div></div>`;
+  });
+  document.getElementById('jt-stats').innerHTML = jtHtml || '<div style="font-size:11px;color:rgba(255,255,255,0.3)">No jobs</div>';
+
+  const ghlLabels = { 'ghl-appt': 'Appt Booked', 'ghl-consult': 'Consultation', 'ghl-proposal': 'Proposal', 'ghl-permitting': 'Permitting' };
+  let ghlHtml = '';
+  ['ghl-appt','ghl-consult','ghl-proposal','ghl-permitting'].forEach(cat => {
+    if (ghlCounts[cat] > 0) ghlHtml += `<div class="dash-row"><div class="dash-dot" style="background:${GHL_CATEGORY_COLORS[cat]};transform:rotate(45deg);border-radius:2px;"></div><div class="dash-label" style="font-size:11px;">${ghlLabels[cat]}</div><div class="dash-count">${ghlCounts[cat]}</div></div>`;
+  });
+  document.getElementById('ghl-stats').innerHTML = ghlHtml || '<div style="font-size:11px;color:rgba(255,255,255,0.3)">No leads</div>';
+
+  document.getElementById('total-count').textContent = JT_JOBS.length + GHL_OPPS.length;
+  document.getElementById('update-time').textContent = new Date().toLocaleString('en-US', {timeZone:'America/Phoenix', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+
+  // Update mobile drawer dashboard
+  const mjtEl = document.getElementById('mobile-jt-stats');
+  const mghlEl = document.getElementById('mobile-ghl-stats');
+  const mtotalEl = document.getElementById('mobile-total-count');
+  const mtsEl = document.getElementById('mobile-refresh-ts');
+  if (mjtEl) {
+    let mjtHtml = '';
+    ['jt-active','jt-sold'].forEach(cat => {
+      if (jtCounts[cat]) mjtHtml += `<div class="mobile-dash-row"><div class="mobile-dash-label"><div style="width:10px;height:10px;border-radius:50%;background:${jtColors[cat]};flex-shrink:0;"></div>${jtLabels[cat]}</div><div class="mobile-dash-count">${jtCounts[cat]}</div></div>`;
+    });
+    mjtEl.innerHTML = mjtHtml || '<div style="font-size:11px;color:rgba(255,255,255,0.3)">No jobs</div>';
+  }
+  if (mghlEl) {
+    let mghlHtml = '';
+    ['ghl-appt','ghl-consult','ghl-proposal','ghl-permitting'].forEach(cat => {
+      if (ghlCounts[cat] > 0) mghlHtml += `<div class="mobile-dash-row"><div class="mobile-dash-label"><div style="width:10px;height:10px;transform:rotate(45deg);border-radius:2px;background:${GHL_CATEGORY_COLORS[cat]};flex-shrink:0;"></div>${ghlLabels[cat]}</div><div class="mobile-dash-count">${ghlCounts[cat]}</div></div>`;
+    });
+    mghlEl.innerHTML = mghlHtml || '<div style="font-size:11px;color:rgba(255,255,255,0.3)">No leads</div>';
+  }
+  if (mtotalEl) mtotalEl.textContent = (JT_JOBS.length + GHL_OPPS.length) + ' on map';
+  if (mtsEl) mtsEl.textContent = 'Updated ' + fmtNow();
+}
+
+// ─── MOBILE DRAWER ───────────────────────────────────────────────────────────────────
+
+function toggleMobileDrawer() {
+  const drawer = document.getElementById('mobile-drawer');
+  if (drawer) drawer.classList.toggle('collapsed');
+}
+
+function updateMobileRadarBtn() {
+  const btn = document.getElementById('mobile-btn-radar');
+  if (btn) btn.textContent = weatherOn ? '🌦 Radar: ON' : '🌦 Radar: OFF';
+}
+
+// ─── GLOBAL HOVER LABEL ──────────────────────────────────────────────────────
+let _hoverLabel = null;
+function initHoverLabel() {
+  if (_hoverLabel) return;
+  _hoverLabel = document.createElement('div');
+  _hoverLabel.style.cssText = `position:fixed;z-index:9999;pointer-events:none;background:rgba(10,14,26,0.92);color:#fff;font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;white-space:nowrap;border:1px solid rgba(255,255,255,0.2);opacity:0;transition:opacity 0.12s;transform:translate(-50%, -100%) translateY(-8px);`;
+  document.body.appendChild(_hoverLabel);
+}
+function showLabel(text, pinEl) {
+  if (!_hoverLabel) initHoverLabel();
+  _hoverLabel.textContent = text;
+  const rect = pinEl.getBoundingClientRect();
+  _hoverLabel.style.left = (rect.left + rect.width / 2) + 'px';
+  _hoverLabel.style.top = rect.top + 'px';
+  _hoverLabel.style.opacity = '1';
+}
+function hideLabel() { if (_hoverLabel) _hoverLabel.style.opacity = '0'; }
+
+// ─── MAP LOAD ─────────────────────────────────────────────────────────────────
+
+map.on('load', () => {
+
+  // Add weather layer via OpenWeatherMap precipitation radar (all zoom levels supported)
+  const owmKey = 'e61b4003430c114ca4ddc18c45aca238';
+  const owmTileUrl = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${owmKey}`;
+  map.addSource('weather', { type: 'raster', tiles: [owmTileUrl], tileSize: 256, attribution: '© OpenWeatherMap' });
+  map.addLayer({ id: 'weather-layer', type: 'raster', source: 'weather', layout: { visibility: 'visible' }, paint: { 'raster-opacity': 0.7 } });
+  weatherOn = true;
+  var radarBtnInit = document.getElementById('btn-radar');
+  if (radarBtnInit) { radarBtnInit.textContent = 'ON'; radarBtnInit.classList.add('active'); }
+
+  // Add zone polygons
+  Object.entries(ZONES).forEach(([name, zone]) => {
+    const coords = zone.coords.map(c => c);
+    if (coords[0] !== coords[coords.length-1]) coords.push(coords[0]);
+    map.addSource(`zone-${name}`, { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] }, properties: { name } } });
+    map.addLayer({ id: `zone-fill-${name}`, type: 'fill', source: `zone-${name}`, paint: { 'fill-color': zone.color, 'fill-opacity': zone.opacity } });
+    map.addLayer({ id: `zone-line-${name}`, type: 'line', source: `zone-${name}`, paint: { 'line-color': zone.color, 'line-width': 1.5, 'line-opacity': 0.5 } });
+    const labelAnchor = zone.label_anchor || null;
+    let cx, cy;
+    if (labelAnchor) {
+      cx = labelAnchor[0]; cy = labelAnchor[1];
+    } else {
+      const centroid = coords.reduce((acc, c) => [acc[0]+c[0], acc[1]+c[1]], [0,0]);
+      cx = centroid[0] / coords.length; cy = centroid[1] / coords.length;
+    }
+    map.addSource(`zone-label-${name}`, { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Point', coordinates: [cx, cy] }, properties: { name } } });
+    map.addLayer({ id: `zone-text-${name}`, type: 'symbol', source: `zone-label-${name}`, layout: { 'text-field': name, 'text-size': 11, 'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': false }, paint: { 'text-color': zone.color, 'text-opacity': 0.85, 'text-halo-color': '#000', 'text-halo-width': 1 } });
+  });
+
+  initHoverLabel();
+  _mapLoaded = true;
+
+  // If live data already arrived, render pins now; otherwise fetchLiveData callback handles it
+  if (_dataLoaded) {
+    addJTMarkers();
+    addGHLMarkers();
+    initWeatherRisk();
+    applyWeatherZoneFlash();
+    buildDashboard();
+    searchIndex = buildSearchIndex();
+  }
+
+  initSupplierLayers();
+  document.getElementById('loading').style.display = 'none';
+});
+
+// ─── JT MARKER RENDERER ──────────────────────────────────────────────────────
+
+function addJTMarkers() {
+  JT_JOBS.forEach(job => {
+    if (!job.lat || !job.lon) return;
+    const color = getJTColor(job.status);
+    const category = getJTCategory(job.status);
+    const jobZone = getZoneForCoords(job.lon, job.lat);
+    const isActive = category === 'jt-active';
+
+    const el = document.createElement('div');
+    el.dataset.category = category;
+    el.dataset.zone = jobZone;
+
+    if (isActive && weatherRiskActive) {
+      el.style.cssText = `
+        width:20px;height:20px;border-radius:50%;
+        background:${color};border:2.5px solid rgba(255,255,255,0.9);
+        box-shadow:0 0 8px ${color},0 2px 6px rgba(0,0,0,0.5),0 0 0 4px rgba(231,76,60,0.4);
+        cursor:pointer;transition:box-shadow 0.15s;
+        animation:weatherPulse 1.5s ease-in-out infinite;
+      `;
+    } else {
+      el.style.cssText = `
+        width:16px;height:16px;border-radius:50%;
+        background:${color};border:2.5px solid rgba(255,255,255,0.9);
+        box-shadow:0 0 8px ${color},0 2px 6px rgba(0,0,0,0.5);
+        cursor:pointer;transition:box-shadow 0.15s;
+      `;
+    }
+
+    if (isActive && weatherRiskActive) {
+      const badge = document.createElement('div');
+      badge.style.cssText = `position:absolute;top:-8px;right:-8px;width:14px;height:14px;background:#e74c3c;border-radius:50%;border:2px solid #fff;font-size:8px;display:flex;align-items:center;justify-content:center;pointer-events:none;`;
+      badge.textContent = '!';
+      el.style.position = 'relative';
+      el.appendChild(badge);
+    }
+
+    const displayName = (job.name || 'Job').split(' ').slice(0,2).join(' ');
+    el.addEventListener('mouseenter', () => { showLabel(displayName, el); el.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.6), 0 0 16px ${color}, 0 0 6px ${color}`; });
+    el.addEventListener('mouseleave', () => { hideLabel(); el.style.boxShadow = `0 0 8px ${color}, 0 2px 6px rgba(0,0,0,0.5)`; });
+
+    const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createJTPopup(job));
+    const jtMarker = new mapboxgl.Marker(el).setLngLat([job.lon, job.lat]).setPopup(popup).addTo(map);
+    allMarkers.push({ marker: jtMarker, el, category, source: 'jt', zone: jobZone });
+  });
+}
+
+// ─── GHL MARKER RENDERER ─────────────────────────────────────────────────────
+
+function addGHLMarkers() {
+  const jtGhlIds = new Set(JT_JOBS.map(j => j.ghlId).filter(Boolean));
+  GHL_OPPS.forEach(opp => {
+    if (!opp.lat || !opp.lon) return;
+    const ghlCat = getGHLCategory(opp.stage_name);
+    if (!ghlCat) return;
+    const color = getGHLColor(opp.stage_name);
+    const oppZone = getZoneForCoords(opp.lon, opp.lat);
+    const isAppt = ghlCat === 'ghl-appt';
+
+    const diamond = document.createElement('div');
+    diamond.dataset.category = ghlCat;
+    diamond.dataset.zone = oppZone;
+    diamond.style.cssText = `
+      width:14px;height:14px;
+      background:${color};border:2px solid rgba(255,255,255,0.85);
+      box-shadow:0 0 8px ${color},0 2px 6px rgba(0,0,0,0.5);
+      transform:rotate(45deg);border-radius:1px;
+      cursor:pointer;transition:box-shadow 0.15s;
+    `;
+
+    // For Appt Booked: show name + date on hover
+    const displayName = (opp.name || 'Lead').split(' ').slice(0,2).join(' ');
+    const apptLabel = isAppt && opp.appt_start
+      ? `${displayName} · ${formatApptDate(opp.appt_start)}`
+      : displayName;
+
+    diamond.addEventListener('mouseenter', () => { showLabel(apptLabel, diamond); diamond.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.6), 0 0 16px ${color}, 0 0 6px ${color}`; });
+    diamond.addEventListener('mouseleave', () => { hideLabel(); diamond.style.boxShadow = `0 0 8px ${color}, 0 2px 6px rgba(0,0,0,0.5)`; });
+
+    const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createGHLPopup(opp));
+    const ghlMarker = new mapboxgl.Marker(diamond, { anchor: 'center' }).setLngLat([opp.lon, opp.lat]).setPopup(popup).addTo(map);
+    allMarkers.push({ marker: ghlMarker, el: diamond, category: ghlCat, source: 'ghl', zone: oppZone });
+  });
+}
+
+// ─── FILTER CHIP LOGIC ───────────────────────────────────────────────────────
+
+const allMarkers = [];
+const activeFilters = new Set(['jt-active','jt-sold','ghl-appt','ghl-consult','ghl-proposal','ghl-permitting']);
+
+function toggleChip(category) {
+  const chip = document.getElementById(`chip-${category}`);
+  if (activeFilters.has(category)) {
+    activeFilters.delete(category); chip.classList.remove('active'); chip.classList.add('inactive');
+  } else {
+    activeFilters.add(category); chip.classList.add('active'); chip.classList.remove('inactive');
+  }
+  applyFilters();
+}
+
+function applyFilters() {
+  allMarkers.forEach(({ marker, category, zone }) => {
+    const el = marker.getElement();
+    const catOk = activeFilters.has(category);
+    const zoneOk = activeZones.has(zone || 'Outside Service Area');
+    el.style.display = (catOk && zoneOk) ? '' : 'none';
+  });
+}
+
+const JT_CHIPS = ['jt-active','jt-sold'];
+const GHL_CHIPS = ['ghl-appt','ghl-consult','ghl-proposal','ghl-permitting'];
+
+function masterToggle(group) {
+  const chips = group === 'jt' ? JT_CHIPS : GHL_CHIPS;
+  const btn = document.getElementById(`${group}-master-btn`);
+  const allOn = chips.every(c => activeFilters.has(c));
+  if (allOn) {
+    chips.forEach(c => { activeFilters.delete(c); const chip = document.getElementById(`chip-${c}`); if (chip) { chip.classList.remove('active'); chip.classList.add('inactive'); } });
+    btn.textContent = group === 'jt' ? 'JT ▸' : 'GHL ▸'; btn.style.opacity = '0.45';
+  } else {
+    chips.forEach(c => { activeFilters.add(c); const chip = document.getElementById(`chip-${c}`); if (chip) { chip.classList.add('active'); chip.classList.remove('inactive'); } });
+    btn.textContent = group === 'jt' ? 'JT ▾' : 'GHL ▾'; btn.style.opacity = '1';
+  }
+  applyFilters();
+}
+
+// Add weather pulse animation
+const styleEl = document.createElement('style');
+styleEl.textContent = `
+  @keyframes weatherPulse {
+    0%, 100% { box-shadow: 0 0 8px currentColor, 0 2px 6px rgba(0,0,0,0.5), 0 0 0 4px rgba(231,76,60,0.4); }
+    50% { box-shadow: 0 0 8px currentColor, 0 2px 6px rgba(0,0,0,0.5), 0 0 0 8px rgba(231,76,60,0.15); }
+  }
+  @keyframes crewPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.75; }
+  }
+`;
+document.head.appendChild(styleEl);
+
+// ─── CREW LOCATION LAYER ─────────────────────────────────────────────────────
+
+const CREW_SERVER_URL = REFRESH_SERVER_URL;
+let crewMarkers = [];   // { marker, name }
+let crewLayerOn = false;
+let crewPollInterval = null;
+
+async function fetchCrewLocations() {
+  try {
+    const resp = await fetch(CREW_SERVER_URL + '/crew?t=' + Date.now());
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return data.crew || [];
+  } catch(e) {
+    console.warn('Crew fetch error:', e);
+    return [];
+  }
+}
+
+function renderCrewMarkers(crew) {
+  // Remove old crew markers
+  crewMarkers.forEach(({marker}) => marker.remove());
+  crewMarkers = [];
+
+  const statusEl = document.getElementById('crew-status');
+  if (!crew.length) {
+    if (statusEl) statusEl.textContent = 'No crew online';
+    return;
+  }
+
+  crew.forEach(member => {
+    const { name, lat, lon, color, updated_at } = member;
+    if (!lat || !lon) return;
+
+    // Outer pulsing ring
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:relative;width:28px;height:28px;cursor:pointer;';
+
+    // Pulse ring
+    const ring = document.createElement('div');
+    ring.style.cssText = `
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:28px;height:28px;border-radius:50%;
+      border:2px solid ${color};opacity:0.5;
+      animation:crewPulse 2s ease-in-out infinite;
+    `;
+    wrapper.appendChild(ring);
+
+    // Core dot
+    const dot = document.createElement('div');
+    dot.style.cssText = `
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:16px;height:16px;border-radius:50%;
+      background:${color};border:2.5px solid #fff;
+      box-shadow:0 0 10px ${color},0 2px 6px rgba(0,0,0,0.6);
+    `;
+    wrapper.appendChild(dot);
+
+    // Name label below dot
+    const label = document.createElement('div');
+    label.style.cssText = `
+      position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);
+      background:rgba(0,0,0,0.75);color:#fff;font-size:10px;font-weight:600;
+      padding:1px 5px;border-radius:3px;white-space:nowrap;
+      border:1px solid ${color};pointer-events:none;
+    `;
+    label.textContent = name;
+    wrapper.appendChild(label);
+
+    // Popup with last-seen time
+    const mins = Math.round((Date.now() - new Date(updated_at).getTime()) / 60000);
+    const timeStr = mins < 1 ? 'Just now' : `${mins}m ago`;
+    const popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: '180px' })
+      .setHTML(`
+        <div style="font-family:sans-serif;padding:4px 0;">
+          <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:4px;">👷 ${name}</div>
+          <div style="font-size:11px;color:#aaa;">Last update: <strong style="color:#fff;">${timeStr}</strong></div>
+          <div style="font-size:10px;color:#666;margin-top:4px;">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>
+        </div>
+      `);
+
+    const m = new mapboxgl.Marker(wrapper, { anchor: 'center' })
+      .setLngLat([lon, lat])
+      .setPopup(popup)
+      .addTo(map);
+    crewMarkers.push({ marker: m, name });
+  });
+
+  if (statusEl) statusEl.textContent = `${crew.length} online · updated ${fmtNow()}`;
+}
+
+async function refreshCrewLayer() {
+  if (!crewLayerOn) return;
+  const crew = await fetchCrewLocations();
+  renderCrewMarkers(crew);
+}
+
+function toggleCrewLayer() {
+  const btn = document.getElementById('btn-crew');
+  crewLayerOn = !crewLayerOn;
+  if (crewLayerOn) {
+    btn.textContent = 'ON'; btn.classList.add('active');
+    refreshCrewLayer();
+    crewPollInterval = setInterval(refreshCrewLayer, 5 * 60 * 1000);
+  } else {
+    btn.textContent = 'OFF'; btn.classList.remove('active');
+    crewMarkers.forEach(({marker}) => marker.remove());
+    crewMarkers = [];
+    const statusEl = document.getElementById('crew-status');
+    if (statusEl) statusEl.textContent = 'No crew online';
+    if (crewPollInterval) { clearInterval(crewPollInterval); crewPollInterval = null; }
+  }
+}
+
+</script>
+</body>
+</html>

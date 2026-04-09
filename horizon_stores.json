@@ -1,0 +1,101 @@
+[
+  {
+    "name": "Horizon Landscape Supply - Chandler",
+    "address": "4055 W Saturn Way, Chandler, AZ 85226",
+    "phone": "",
+    "website": "horizononline.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.30153,
+    "lon": -111.912522
+  },
+  {
+    "name": "Horizon Landscape Supply - Gilbert",
+    "address": "4635 E Warner Rd, Gilbert, AZ 85296",
+    "phone": "",
+    "website": "horizononline.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.33573,
+    "lon": -111.69058
+  },
+  {
+    "name": "Horizon Landscape Supply - Goodyear",
+    "address": "13920 W El Cielo, Goodyear, AZ 85338",
+    "phone": "",
+    "website": "horizononline.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.42327,
+    "lon": -112.358396
+  },
+  {
+    "name": "Horizon Landscape Supply - Mesa",
+    "address": "201 W Juanita Ave, Mesa, AZ 85210",
+    "phone": "",
+    "website": "horizononline.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.381805,
+    "lon": -111.835985
+  },
+  {
+    "name": "Horizon Landscape Supply - Phoenix (Tatum)",
+    "address": "17826 N Tatum Blvd, Phoenix, AZ 85032",
+    "phone": "",
+    "website": "horizononline.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.648483,
+    "lon": -111.978174
+  },
+  {
+    "name": "Horizon Landscape Supply - Peoria",
+    "address": "8746 W Kelton Ln, Peoria, AZ 85382",
+    "phone": "",
+    "website": "horizononline.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.63582,
+    "lon": -112.24771
+  },
+  {
+    "name": "Horizon Landscape Supply - Phoenix (S 30th)",
+    "address": "5214 S 30th St, Phoenix, AZ 85040",
+    "phone": "",
+    "website": "horizononline.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.399127,
+    "lon": -112.018173
+  },
+  {
+    "name": "Horizon Landscape Supply - Queen Creek",
+    "address": "21515 E Ocotillo Rd, Queen Creek, AZ 85142",
+    "phone": "",
+    "website": "horizononline.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.24765,
+    "lon": -111.61862
+  },
+  {
+    "name": "Horizon Landscape Supply - Scottsdale",
+    "address": "15517 N 77th St, Scottsdale, AZ 85260",
+    "phone": "",
+    "website": "horizononline.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.626565,
+    "lon": -111.914129
+  }
+]

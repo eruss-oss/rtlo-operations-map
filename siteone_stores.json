@@ -1,0 +1,229 @@
+[
+  {
+    "name": "SiteOne Landscape Supply - Scottsdale",
+    "address": "7501 E Monte Cristo Ave, Scottsdale, AZ 85260",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.630951,
+    "lon": -111.918197
+  },
+  {
+    "name": "SiteOne Stone Center (Cutting Edge) - Glendale",
+    "address": "7540 N 67th Ave, Glendale, AZ 85301",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Cutting Edge Stone - acquired by SiteOne",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.546845,
+    "lon": -112.206078
+  },
+  {
+    "name": "SiteOne Landscape Supply #1106 - Goodyear",
+    "address": "3595 N Cotton Ln, Goodyear, AZ 85395",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.487357,
+    "lon": -112.425268
+  },
+  {
+    "name": "SiteOne Landscape Supply - Mesa",
+    "address": "1530 W Broadway Rd, Mesa, AZ 85202",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.407613,
+    "lon": -111.864467
+  },
+  {
+    "name": "SiteOne Landscape Supply - Peoria",
+    "address": "9350 W Peoria Ave, Peoria, AZ 85345",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.580733,
+    "lon": -112.261042
+  },
+  {
+    "name": "SiteOne Landscape Supply - Gilbert (Val Vista)",
+    "address": "1155 N Val Vista Dr, Gilbert, AZ 85234",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.374902,
+    "lon": -111.755518
+  },
+  {
+    "name": "SiteOne Landscape Supply - Gilbert (S Gilbert)",
+    "address": "3030 S Gilbert Rd, Gilbert, AZ 85295",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.332067,
+    "lon": -111.790574
+  },
+  {
+    "name": "SiteOne Landscape Supply - Chandler",
+    "address": "4835 E Chandler Blvd, Chandler, AZ 85226",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.305211,
+    "lon": -111.977678
+  },
+  {
+    "name": "SiteOne Landscape Supply - Surprise",
+    "address": "13415 W Westgate Dr, Surprise, AZ 85378",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.640055,
+    "lon": -112.348531
+  },
+  {
+    "name": "SiteOne Landscape Supply - Tempe",
+    "address": "2121 S Rural Rd, Tempe, AZ 85282",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.404588,
+    "lon": -111.925649
+  },
+  {
+    "name": "SiteOne Landscape Supply - Queen Creek",
+    "address": "22705 S Ellsworth Rd, Queen Creek, AZ 85142",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.24281,
+    "lon": -111.632825
+  },
+  {
+    "name": "Pioneer Landscape Centers (SiteOne) - Apache Junction",
+    "address": "3451 S Meridian Rd, Apache Junction, AZ 85120",
+    "phone": "",
+    "website": "pioneerco.com",
+    "notes": "Pioneer - acquired by SiteOne",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.38411,
+    "lon": -111.58026
+  },
+  {
+    "name": "Pioneer Landscape Centers (SiteOne) - N Scottsdale",
+    "address": "7452 E Adobe Dr, Scottsdale, AZ 85255",
+    "phone": "",
+    "website": "pioneerco.com",
+    "notes": "Good client-facing yard. Pioneer - acquired by SiteOne",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.689519,
+    "lon": -111.919947
+  },
+  {
+    "name": "Pioneer Landscape Centers (SiteOne) - Peoria North",
+    "address": "11450 W Northern Ave, Peoria, AZ 85345",
+    "phone": "",
+    "website": "pioneerco.com",
+    "notes": "Pioneer - acquired by SiteOne",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.55162,
+    "lon": -112.30562
+  },
+  {
+    "name": "Pioneer Landscape Centers (SiteOne) - Gilbert/Guadalupe",
+    "address": "609 W Guadalupe Rd, Gilbert, AZ 85233",
+    "phone": "",
+    "website": "pioneerco.com",
+    "notes": "Pioneer - acquired by SiteOne",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.364,
+    "lon": -111.80264
+  },
+  {
+    "name": "Pioneer Landscape Centers (SiteOne) - N Chandler",
+    "address": "11243 E Willis Rd, Chandler, AZ 85286",
+    "phone": "",
+    "website": "pioneerco.com",
+    "notes": "Pioneer - acquired by SiteOne",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.28378,
+    "lon": -111.840855
+  },
+  {
+    "name": "Pioneer Landscape Centers - Deer Valley",
+    "address": "1638 E Deer Valley Rd, Phoenix, AZ 85024",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Former Telluride Natural Stone \u2014 now Pioneer/SiteOne. Showroom with stone and hardscape display.",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.688813,
+    "lon": -112.046778
+  },
+  {
+    "name": "SiteOne Stone Center - Indian School",
+    "address": "2514 E Indian School Rd, Phoenix, AZ 85016",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Stone center",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.49516,
+    "lon": -112.027409
+  },
+  {
+    "name": "SiteOne Landscape Supply - Scottsdale McDowell",
+    "address": "7025 E McDowell Rd, Scottsdale, AZ 85257",
+    "phone": "",
+    "website": "siteone.com",
+    "notes": "Full landscape supply",
+    "showroom": false,
+    "ranking": "Preferred",
+    "lat": 33.46508,
+    "lon": -111.92918
+  },
+  {
+    "name": "Arizona Stone Brick Pavers",
+    "address": "12473 N 92nd Dr, Peoria, AZ 85381",
+    "showroom": true,
+    "notes": "Natural stone, pavers, and hardscape materials. Showroom.",
+    "phone": "(623) 878-5080",
+    "lat": 33.5981564,
+    "lon": -112.256785
+  },
+  {
+    "name": "Arizona Stone Brick Pavers",
+    "address": "4502 E Virginia St, Mesa, AZ 85215",
+    "showroom": true,
+    "notes": "Natural stone, pavers, and hardscape materials. Showroom.",
+    "phone": "(480) 641-1042",
+    "lat": 33.4774823,
+    "lon": -111.7337245
+  }
+]

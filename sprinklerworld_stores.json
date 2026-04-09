@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Sprinkler World",
+    "address": "2114 E Indian School Rd, Phoenix, AZ 85016",
+    "phone": "(602) 954-9022",
+    "brand": "sprinklerworld",
+    "lat": 33.494876,
+    "lon": -112.0363052
+  },
+  {
+    "name": "Sprinkler World",
+    "address": "4727 E Bell Rd, Phoenix, AZ 85032",
+    "phone": "(602) 992-1882",
+    "brand": "sprinklerworld",
+    "lat": 33.6384458,
+    "lon": -111.979932
+  },
+  {
+    "name": "Sprinkler World",
+    "address": "1925 W Rose Garden Ln, Phoenix, AZ 85027",
+    "phone": "(623) 587-7676",
+    "brand": "sprinklerworld",
+    "lat": 33.6760314,
+    "lon": -112.101253
+  },
+  {
+    "name": "Sprinkler World",
+    "address": "3164 S Country Club Dr, Mesa, AZ 85210",
+    "phone": "(480) 892-5001",
+    "brand": "sprinklerworld",
+    "lat": 33.3575046,
+    "lon": -111.8424388
+  },
+  {
+    "name": "Sprinkler World",
+    "address": "16700 N 51st Ave, Glendale, AZ 85306",
+    "phone": "(602) 938-3141",
+    "brand": "sprinklerworld",
+    "lat": 33.6376039,
+    "lon": -112.1695304
+  },
+  {
+    "name": "Sprinkler World",
+    "address": "1001 N Jackrabbit Trail, Buckeye, AZ 85326",
+    "phone": "(623) 932-4500",
+    "brand": "sprinklerworld",
+    "lat": 33.4503811,
+    "lon": -112.4788172
+  }
+]

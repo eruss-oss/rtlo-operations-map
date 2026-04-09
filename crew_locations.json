@@ -1,0 +1,18 @@
+{
+  "Eric": {
+    "name": "Eric",
+    "lat": 33.4484,
+    "lon": -112.074,
+    "color": "#FF6B35",
+    "updated_at": "2026-04-08T18:10:20.580736+00:00",
+    "active": true
+  },
+  "Jake": {
+    "name": "Jake",
+    "lat": 33.5722,
+    "lon": -111.891,
+    "color": "#00D4FF",
+    "updated_at": "2026-04-08T18:03:26.541055+00:00",
+    "active": true
+  }
+}

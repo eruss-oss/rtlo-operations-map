@@ -1,0 +1,101 @@
+[
+  {
+    "name": "NPT Pool Tile - Mesa",
+    "address": "7307 E Hampton Ave Ste 102, Mesa, AZ 85209",
+    "showroom": true,
+    "notes": "National Pool Tile showroom. Mon-Fri 8am-3:30pm, Sat 8am-12pm. Phone: (480) 520-5242",
+    "water": true,
+    "lat": 33.3784,
+    "lon": -111.7025
+  },
+  {
+    "name": "NPT Pool Tile - Tempe",
+    "address": "2440 W University Dr, Tempe, AZ 85281",
+    "showroom": true,
+    "notes": "National Pool Tile showroom. Mon-Fri 8am-3:30pm, Sat 8am-12pm. Phone: (480) 968-9929",
+    "water": true,
+    "lat": 33.4226787,
+    "lon": -111.9756007
+  },
+  {
+    "name": "NPT Pool Tile - West Phoenix",
+    "address": "640 N 43rd Ave #150, Phoenix, AZ 85009",
+    "showroom": true,
+    "notes": "National Pool Tile showroom. Mon-Fri 8am-2:30pm, Sat 7am-11am. Phone: (602) 278-5179",
+    "water": true,
+    "lat": 33.4758,
+    "lon": -112.1327
+  },
+  {
+    "name": "SCP Distributors - Phoenix",
+    "address": "18201 N 25th Ave, Phoenix, AZ 85023",
+    "showroom": false,
+    "notes": "Pool supply wholesale distributor.",
+    "water": true,
+    "lat": 33.6518801,
+    "lon": -112.1119301
+  },
+  {
+    "name": "SCP Distributors - Chandler",
+    "address": "261 N Roosevelt Ave, Chandler, AZ 85226",
+    "showroom": false,
+    "notes": "Pool supply wholesale distributor.",
+    "water": true,
+    "lat": 33.3073328,
+    "lon": -111.9512944
+  },
+  {
+    "name": "SCP Distributors - Gilbert",
+    "address": "560 E Germann Rd, Gilbert, AZ 85297",
+    "showroom": false,
+    "notes": "Pool supply wholesale distributor.",
+    "water": true,
+    "lat": 33.2782585,
+    "lon": -111.7774679
+  },
+  {
+    "name": "SCP Distributors - Mesa",
+    "address": "2350 W Broadway Rd Ste 110, Mesa, AZ 85202",
+    "showroom": false,
+    "notes": "Pool supply wholesale distributor.",
+    "water": true,
+    "lat": 33.4023,
+    "lon": -111.978
+  },
+  {
+    "name": "SCP Distributors - Scottsdale",
+    "address": "7841 E Gray Rd Ste A, Scottsdale, AZ 85260",
+    "showroom": false,
+    "notes": "Pool supply wholesale distributor.",
+    "water": true,
+    "lat": 33.5987,
+    "lon": -111.9108
+  },
+  {
+    "name": "SCP Distributors - Tempe",
+    "address": "8945 S Harl Ave Ste 106, Tempe, AZ 85284",
+    "showroom": false,
+    "notes": "Pool supply wholesale distributor.",
+    "water": true,
+    "lat": 33.3418,
+    "lon": -111.9318
+  },
+  {
+    "name": "Aquatec Fountains Inc",
+    "address": "13613 N 32nd St, Phoenix, AZ 85032",
+    "showroom": false,
+    "notes": "Fountain contractor and supply. Design, construction, maintenance, repair. Phone: (602) 589-1000",
+    "water": true,
+    "lat": 33.6099989,
+    "lon": -112.0120918
+  },
+  {
+    "name": "Majestic Water Spouts",
+    "address": "940 S Park Lane Suite 2, Tempe, AZ 85281",
+    "showroom": false,
+    "notes": "Water spouts, scuppers, and pool water features. Custom design available.",
+    "water": true,
+    "lat": 33.4226,
+    "lon": -111.9756
+  }
+]

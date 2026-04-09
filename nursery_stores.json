@@ -1,0 +1,58 @@
+[
+  {
+    "name": "Whitfill Nursery",
+    "address": "824 E Glendale Ave, Phoenix, AZ 85021",
+    "phone": "(602) 944-8479",
+    "website": "whitfillnursery.com",
+    "notes": "Best all-around \u2014 Preferred",
+    "showroom": false,
+    "lat": 33.53867,
+    "lon": -112.0612
+  },
+  {
+    "name": "Moon Valley Nurseries",
+    "address": "18047 N Tatum Blvd, Phoenix, AZ 85032",
+    "phone": "(480) 374-3964",
+    "website": "moonvalley.com",
+    "notes": "Specimen trees \u2014 Secondary",
+    "showroom": false,
+    "lat": 33.65069,
+    "lon": -111.976445
+  },
+  {
+    "name": "Sun Valley Nursery",
+    "address": "11416 E Desert Cove Ave, Scottsdale, AZ 85259",
+    "phone": "(480) 767-1800",
+    "website": "sunvalleynursery.com",
+    "notes": "Clean selection \u2014 Secondary",
+    "showroom": false,
+    "lat": 33.586706,
+    "lon": -111.834574
+  },
+  {
+    "name": "SummerWinds Nursery",
+    "address": "17826 N Tatum Blvd, Phoenix, AZ 85032",
+    "phone": "",
+    "website": "summerwindsnursery.com",
+    "notes": "Retail-friendly \u2014 Secondary",
+    "showroom": false,
+    "lat": 33.648483,
+    "lon": -111.978174
+  },
+  {
+    "name": "Arid Solutions Nursery",
+    "address": "3815 E Southern Ave, Phoenix, AZ 85040",
+    "lat": 33.3925554,
+    "lng": -111.9996032,
+    "showroom": false,
+    "notes": "Wholesale plant nursery. Open weekdays 6am\u20132pm."
+  },
+  {
+    "name": "V&P Nurseries",
+    "address": "21919 E Germann Rd, Queen Creek, AZ 85142",
+    "showroom": false,
+    "notes": "Wholesale plant nursery. Drought-tolerant and subtropical varieties. Landscape professionals.",
+    "lat": 33.2780011,
+    "lon": -111.6735803
+  }
+]

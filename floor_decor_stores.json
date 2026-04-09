@@ -1,0 +1,83 @@
+[
+  {
+    "name": "Floor & Decor - Phoenix",
+    "address": "1800 E Highland Ave, Phoenix, AZ 85016",
+    "phone": "",
+    "website": "flooranddecor.com",
+    "notes": "Full tile, stone, and hardwood selection",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.506669,
+    "lon": -112.042349
+  },
+  {
+    "name": "Floor & Decor - Chandler",
+    "address": "1901 E Northrop Blvd, Chandler, AZ 85286",
+    "phone": "",
+    "website": "flooranddecor.com",
+    "notes": "Full tile, stone, and hardwood selection",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.27904,
+    "lon": -111.80905
+  },
+  {
+    "name": "Floor & Decor - Glendale",
+    "address": "5880 W Bell Rd, Glendale, AZ 85308",
+    "phone": "",
+    "website": "flooranddecor.com",
+    "notes": "Full tile, stone, and hardwood selection",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.641485,
+    "lon": -112.185115
+  },
+  {
+    "name": "Floor & Decor - Surprise",
+    "address": "13230 N Prasada Pkwy, Surprise, AZ 85388",
+    "phone": "",
+    "website": "flooranddecor.com",
+    "notes": "Full tile, stone, and hardwood selection",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.604521,
+    "lon": -112.416851
+  },
+  {
+    "name": "Floor & Decor - Tolleson",
+    "address": "9261 W McDowell Rd, Tolleson, AZ 85353",
+    "phone": "",
+    "website": "flooranddecor.com",
+    "notes": "Full tile, stone, and hardwood selection",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.4639,
+    "lon": -112.258638
+  },
+  {
+    "name": "Floor & Decor - Tempe",
+    "address": "7500 S Priest Dr, Tempe, AZ 85283",
+    "phone": "(480) 838-3046",
+    "website": "flooranddecor.com",
+    "showroom": true,
+    "notes": "Full tile, stone, and hardwood selection",
+    "lat": 33.350381,
+    "lon": -111.964751
+  },
+  {
+    "name": "Floor & Decor - Mesa",
+    "address": "7022 E Hampton Ave, Mesa, AZ 85209",
+    "lat": 33.3914679,
+    "lng": -111.6795474,
+    "showroom": true,
+    "notes": "Full flooring showroom. Tile, stone, wood, vinyl, fixtures."
+  },
+  {
+    "name": "Floor & Decor - Scottsdale",
+    "address": "15515 N Hayden Rd, Scottsdale, AZ 85260",
+    "lat": 33.6267448,
+    "lng": -111.8966677,
+    "showroom": true,
+    "notes": "Opened October 2025. Full flooring showroom."
+  }
+]

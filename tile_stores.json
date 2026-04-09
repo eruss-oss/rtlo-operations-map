@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Monterrey Tile (Phoenix)",
+    "address": "3232 S 48th St #111, Phoenix, AZ 85040",
+    "phone": "(480) 219-2494",
+    "website": "monterreytile.com",
+    "notes": "Strongest showroom experience",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.41716,
+    "lon": -111.979243
+  },
+  {
+    "name": "Monterrey Tile (Chandler)",
+    "address": "401 E Ray Rd, Chandler, AZ 85225",
+    "phone": "(480) 855-6622",
+    "website": "monterreytile.com",
+    "notes": "Slab yard",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.319732,
+    "lon": -111.836212
+  },
+  {
+    "name": "QDI Surfaces - Scottsdale",
+    "address": "15678 N Greenway Hayden Loop, Scottsdale, AZ 85254",
+    "phone": "(480) 903-0011",
+    "website": "qdisurfaces.com",
+    "notes": "Design-forward",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.62833,
+    "lon": -111.916312
+  },
+  {
+    "name": "Arizona Tile",
+    "address": "1855 W Broadway Rd, Tempe, AZ 85282",
+    "phone": "(480) 893-9393",
+    "website": "arizonatile.com",
+    "notes": "Reliable",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.409099,
+    "lon": -111.968936
+  },
+  {
+    "name": "Bedrosians Tile & Stone",
+    "address": "15440 N 84th St, Scottsdale, AZ 85260",
+    "phone": "(480) 922-9770",
+    "website": "bedrosians.com",
+    "notes": "Strong for porcelain, slab, and design-forward materials",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.62667,
+    "lon": -111.899576
+  },
+  {
+    "name": "Aqua Bella Tile",
+    "address": "2850 S Roosevelt St, Tempe, AZ 85282",
+    "phone": "(602) 748-4080",
+    "website": "aquabellatile.com",
+    "notes": "Pool tile specialist",
+    "showroom": true,
+    "ranking": "Preferred",
+    "lat": 33.398263,
+    "lon": -111.949322
+  }
+]

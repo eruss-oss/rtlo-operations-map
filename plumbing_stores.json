@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Studio 44 Design",
+    "address": "8924 E Pinnacle Peak Rd Suite G5, Scottsdale, AZ 85255",
+    "phone": "(602) 309-4161",
+    "website": "studio44design.com",
+    "notes": "High-end curated interior design + plumbing showroom \u2014 Preferred",
+    "showroom": true,
+    "lat": 33.69885,
+    "lon": -111.888321
+  },
+  {
+    "name": "Kohler Signature Store",
+    "address": "4513 N Scottsdale Rd Suite 116, Scottsdale, AZ 85251",
+    "phone": "(480) 397-2021",
+    "website": "kohler.com",
+    "notes": "Premium Kohler fixtures, Kallista, Robern, Ann Sacks \u2014 Preferred",
+    "showroom": true,
+    "lat": 33.503031,
+    "lon": -111.925723
+  },
+  {
+    "name": "Ferguson Home - Scottsdale",
+    "address": "15000 N Hayden Rd, Scottsdale, AZ 85260",
+    "phone": "(480) 556-0103",
+    "website": "fergusonhome.com",
+    "notes": "Bath, kitchen & lighting showroom \u2014 Preferred",
+    "showroom": true,
+    "lat": 33.62026,
+    "lon": -111.908088
+  },
+  {
+    "name": "Ferguson Home - Mesa",
+    "address": "3426 E Baseline Rd, Mesa, AZ 85204",
+    "phone": "(480) 444-5000",
+    "website": "fergusonhome.com",
+    "notes": "Bath, kitchen & lighting showroom \u2014 Preferred",
+    "showroom": true,
+    "lat": 33.381215,
+    "lon": -111.75697
+  },
+  {
+    "name": "Central Arizona Supply - Scottsdale",
+    "address": "16431 N 90th St, Scottsdale, AZ 85260",
+    "phone": "(480) 922-9191",
+    "website": "centralazsupply.com",
+    "notes": "Contractor plumbing supply + showroom \u2014 Preferred",
+    "showroom": true,
+    "lat": 33.635605,
+    "lon": -111.886546
+  },
+  {
+    "name": "Facets of Arizona",
+    "address": "9780 W Northern Ave Suite 1120, Peoria, AZ 85345",
+    "phone": "(623) 220-0704",
+    "website": "facetsaz.com",
+    "notes": "Ultra high-end decorative plumbing + hardware showroom \u2014 Specialty",
+    "showroom": true,
+    "lat": 33.552156,
+    "lon": -112.269937
+  }
+]

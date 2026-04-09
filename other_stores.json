@@ -1,0 +1,20 @@
+[
+  {
+    "name": "RWC Building Products - Phoenix",
+    "address": "1918 W Grant St, Phoenix, AZ 85009",
+    "lat": 33.441489,
+    "lng": -112.102036
+  },
+  {
+    "name": "RWC Building Products - Scottsdale",
+    "address": "7475 E Williams Dr, Scottsdale, AZ 85255",
+    "lat": 33.690525,
+    "lng": -111.919414
+  },
+  {
+    "name": "RWC Building Products - Mesa",
+    "address": "1345 S Center St, Mesa, AZ 85210",
+    "lat": 33.39062,
+    "lng": -111.83089
+  }
+]

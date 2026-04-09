@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Sonoran Lighting Supply",
+    "address": "2920 E Mohawk Ln Ste 102, Phoenix, AZ 85050",
+    "lat": 33.6738345,
+    "lng": -112.0194569,
+    "showroom": false,
+    "notes": "Lighting wholesale and design center. Outdoor and landscape lighting."
+  },
+  {
+    "name": "Cholla Tile (Mesa)",
+    "address": "4340 S 80th St, Mesa, AZ 85212",
+    "showroom": true,
+    "notes": "Tile showroom. Phone: (480) 991-1768",
+    "lat": 33.3554803,
+    "lon": -111.6619278
+  },
+  {
+    "name": "Cholla Tile (Glendale)",
+    "address": "5455 W Montebello Ave, Glendale, AZ 85301",
+    "showroom": true,
+    "notes": "Tile showroom. Phone: (480) 991-1768",
+    "lat": 33.520344,
+    "lon": -112.1766196
+  },
+  {
+    "name": "Imperial Wholesale",
+    "address": "9602 E Apache Trail, Mesa, AZ 85207",
+    "showroom": true,
+    "notes": "30,000 sq ft showroom. Flooring, countertops, backsplashes. Phone: (480) 986-6900",
+    "lat": 33.416071,
+    "lon": -111.623401
+  },
+  {
+    "name": "Universal White Cement",
+    "address": "5610 W Maryland Ave, Glendale, AZ 85301",
+    "showroom": false,
+    "notes": "Pool interior supply and distribution. Plaster blending facility.",
+    "lat": 33.532351,
+    "lon": -112.1798496
+  },
+  {
+    "name": "ANS Mermer",
+    "address": "2850 E Jones Ave, Phoenix, AZ 85040",
+    "showroom": false,
+    "notes": "Closed to public. Visit for samples only. Natural stone and marble supplier.",
+    "lat": 33.4107514,
+    "lon": -112.0200619
+  }
+]

@@ -1,0 +1,142 @@
+[
+  {
+    "id": "22PK2vLzgLDC",
+    "name": "Delgado",
+    "number": "003",
+    "status": "Active Production Phase",
+    "location": {
+      "id": "22PGuYvsH44d",
+      "name": "537 S 48th St, Tempe",
+      "address": "537 S 48th St, Tempe, AZ 85281, USA"
+    },
+    "lat": 33.424298,
+    "lon": -111.974547,
+    "ghlId": ""
+  },
+  {
+    "id": "22PSdSi6zvsZ",
+    "name": "Greene",
+    "number": "651",
+    "status": "Sold | Project Intake Phase",
+    "location": {
+      "id": "22PSdSi6Du43",
+      "name": "Green Residence",
+      "address": "4110 E Oak St, Phoenix, AZ 85008"
+    },
+    "lat": 33.473305,
+    "lon": -111.992557,
+    "ghlId": ""
+  },
+  {
+    "id": "22PUSiCiju6q",
+    "name": "Pierce",
+    "number": "683",
+    "status": "Sold | Project Intake Phase",
+    "location": {
+      "id": "22PUShji2iSb",
+      "name": "4910 East Crimson Terrace",
+      "address": "4910 E Crimson Terrace, Cave Creek, AZ 85331, USA"
+    },
+    "lat": 33.787149,
+    "lon": -111.975457,
+    "ghlId": ""
+  },
+  {
+    "id": "22PUVe2YXhWu",
+    "name": "Rodgers",
+    "number": "684",
+    "status": "Sold | Project Intake Phase",
+    "location": {
+      "id": "22PUVdePTVRQ",
+      "name": "10475 E Balancing Rock Rd",
+      "address": "10475 E Balancing Rock Rd, Scottsdale, AZ 85262, USA"
+    },
+    "lat": 33.74903,
+    "lon": -111.854484,
+    "ghlId": ""
+  },
+  {
+    "id": "22PUVzeGLaNb",
+    "name": "White",
+    "number": "685",
+    "status": "Sold | Project Intake Phase",
+    "location": {
+      "id": "22PUVzA73Hht",
+      "name": "17136 West Desert Hollow Drive",
+      "address": "17136 W Desert Holw Dr, Surprise, AZ 85387, USA"
+    },
+    "lat": 33.71428,
+    "lon": -112.42271,
+    "ghlId": ""
+  },
+  {
+    "id": "22PUYv5Erkgk",
+    "name": "Schultz",
+    "number": "687",
+    "status": "Sold | Project Intake Phase",
+    "location": {
+      "id": "22PUYuvRDyac",
+      "name": "17040 West Hope Drive",
+      "address": "17040 W Hope Dr, Surprise, AZ 85388, USA"
+    },
+    "lat": 33.58624,
+    "lon": -112.42553,
+    "ghlId": ""
+  },
+  {
+    "id": "22PUcJxuUc7T",
+    "name": "Kozak",
+    "number": "688",
+    "status": "Sold | Project Intake Phase",
+    "location": {
+      "id": "22PUcJizbZmW",
+      "name": "8538 E Valley Vista Dr",
+      "address": "8538 E Valley Vista Dr, Scottsdale, AZ 85250, USA"
+    },
+    "lat": 33.526279,
+    "lon": -111.896848,
+    "ghlId": ""
+  },
+  {
+    "id": "22PUfR4PsZEH",
+    "name": "Garcia Warranty",
+    "number": "689",
+    "status": "Sold | Project Intake Phase",
+    "location": {
+      "id": "22PUfQreMKQB",
+      "name": "25031 N 136th Ave",
+      "address": "25031 N 136th Ave, Peoria, AZ 85383, USA"
+    },
+    "lat": 33.71186,
+    "lon": -112.35269,
+    "ghlId": ""
+  },
+  {
+    "id": "22PUirTKN8Vi",
+    "name": "Nieves Warranty",
+    "number": "691",
+    "status": "Active Production Phase",
+    "location": {
+      "id": "22PUirLEcbxY",
+      "name": "22958 East Alyssa Road",
+      "address": "22958 E Alyssa Rd, Queen Creek, AZ 85142, USA"
+    },
+    "lat": 33.2573,
+    "lon": -111.587975,
+    "ghlId": ""
+  },
+  {
+    "id": "22PVABVv9Ad2",
+    "name": "Brooks Warranty",
+    "number": "707",
+    "status": "Active Production Phase",
+    "location": {
+      "id": "22PVABGKgNXF",
+      "name": "2564 East Music Mountain Avenue",
+      "address": "2564 E Music Mountain Ave, Apache Junction, AZ 85119, USA"
+    },
+    "lat": 33.376006,
+    "lon": -111.518561,
+    "ghlId": ""
+  }
+]
