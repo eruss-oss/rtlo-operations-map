@@ -468,6 +468,31 @@
     </div>
   </div>
 
+  <!-- Weather / Controls / Crew Panel -->
+  <div id="weather-toggle">
+    <h3>🌦 Weather Overlay</h3>
+    <div class="toggle-row">
+      <span class="toggle-label">Radar</span>
+      <button class="toggle-btn" id="btn-radar" onclick="toggleWeather()" title="Toggle live precipitation radar overlay from OpenWeatherMap">OFF</button>
+    </div>
+    <div class="weather-desc">Shows live precipitation radar over the map. Useful for checking rain/storm coverage across job sites.</div>
+    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+      <div class="toggle-row">
+        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">Live Data</span>
+        <button class="toggle-btn active" id="btn-refresh" onclick="refreshMapData()" title="Fetch latest jobs and leads now" style="font-size:14px;padding:2px 8px;line-height:1;">🔄</button>
+      </div>
+      <div id="refresh-timestamp" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">Loading…</div>
+    </div>
+    <!-- Crew Layer toggle -->
+    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+      <div class="toggle-row">
+        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">👷 Crew</span>
+        <button class="toggle-btn" id="btn-crew" onclick="toggleCrewLayer()" title="Show/hide crew member locations on the map">OFF</button>
+      </div>
+      <div id="crew-status" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">No crew online</div>
+    </div>
+  </div>
+
   <!-- Legend -->
   <div id="legend-panel">
   <div id="legend">
@@ -496,7 +521,7 @@
   </div>
 </div>
 
-<!-- Right Sidebar: Supplier Layers + Weather -->
+<!-- Right Sidebar: Supplier Layers only -->
 <div id="right-sidebar">
   <!-- Supplier Layers Panel -->
   <div id="supplier-panel">
@@ -573,30 +598,6 @@
     </div>
   </div>
 
-  <!-- Weather toggle -->
-  <div id="weather-toggle">
-    <h3>🌦 Weather Overlay</h3>
-    <div class="toggle-row">
-      <span class="toggle-label">Radar</span>
-      <button class="toggle-btn" id="btn-radar" onclick="toggleWeather()" title="Toggle live precipitation radar overlay from OpenWeatherMap">OFF</button>
-    </div>
-    <div class="weather-desc">Shows live precipitation radar over the map. Useful for checking rain/storm coverage across job sites.</div>
-    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
-      <div class="toggle-row">
-        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">Live Data</span>
-        <button class="toggle-btn active" id="btn-refresh" onclick="refreshMapData()" title="Fetch latest jobs and leads now" style="font-size:14px;padding:2px 8px;line-height:1;">🔄</button>
-      </div>
-      <div id="refresh-timestamp" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">Loading…</div>
-    </div>
-    <!-- Crew Layer toggle -->
-    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
-      <div class="toggle-row">
-        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">👷 Crew</span>
-        <button class="toggle-btn" id="btn-crew" onclick="toggleCrewLayer()" title="Show/hide crew member locations on the map">OFF</button>
-      </div>
-      <div id="crew-status" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">No crew online</div>
-    </div>
-  </div>
 </div>
 
 <!-- Mobile Bottom Drawer (hidden on desktop, shown on mobile via CSS) -->
@@ -661,7 +662,7 @@ const SW_STORES = [{"name": "Sprinkler World", "address": "2114 E Indian School 
 const ACE_STORES = [{"name": "Ace Hardware", "address": "4025 E Thomas Rd, Phoenix, AZ 85018", "phone": "(602) 955-6000", "brand": "ace", "lat": 33.4803366, "lon": -111.994884}, {"name": "Ace Hardware", "address": "3320 W Camelback Rd, Phoenix, AZ 85017", "phone": "(602) 242-4400", "brand": "ace", "lat": 33.5093569, "lon": -112.1308473}, {"name": "Ace Hardware", "address": "7620 E Indian School Rd, Scottsdale, AZ 85251", "phone": "(480) 941-2200", "brand": "ace", "lat": 33.4966417, "lon": -111.916563}, {"name": "Ace Hardware", "address": "1840 E Warner Rd, Tempe, AZ 85284", "phone": "(480) 897-0800", "brand": "ace", "lat": 33.335566, "lon": -111.9105439}, {"name": "Ace Hardware", "address": "1640 E University Dr, Mesa, AZ 85203", "phone": "(480) 834-4400", "brand": "ace", "lat": 33.4224599, "lon": -111.7957458}, {"name": "Ace Hardware", "address": "4830 E Ray Rd, Phoenix, AZ 85044", "phone": "(480) 706-0800", "brand": "ace", "lat": 33.3199254, "lon": -111.9799863}, {"name": "Ace Hardware", "address": "13415 W Bell Rd, Surprise, AZ 85374", "phone": "(623) 546-0800", "brand": "ace", "lat": 33.638804, "lon": -112.3493905}, {"name": "Ace Hardware", "address": "3030 S Gilbert Rd, Gilbert, AZ 85296", "phone": "(480) 899-0800", "brand": "ace", "lat": 33.335386, "lon": -111.789883}, {"name": "Ace Hardware", "address": "4040 E Chandler Blvd, Phoenix, AZ 85048", "phone": "(480) 706-0800", "brand": "ace", "lat": 33.305129, "lon": -111.9966791}, {"name": "Ace Hardware", "address": "7540 W Thunderbird Rd, Peoria, AZ 85381", "phone": "(623) 979-0800", "brand": "ace", "lat": 33.6104021, "lon": -112.2212293}, {"name": "Ace Hardware", "address": "21001 N Tatum Blvd, Phoenix, AZ 85050", "phone": "(480) 473-0800", "brand": "ace", "lat": 33.6781378, "lon": -111.9711105}, {"name": "Ace Hardware", "address": "2040 W Guadalupe Rd, Mesa, AZ 85202", "phone": "(480) 833-0800", "brand": "ace", "lat": 33.3641172, "lon": -111.8783909}, {"name": "Ace Hardware", "address": "1602 E Baseline Rd, Gilbert, AZ 85233", "phone": "(480) 892-0800", "brand": "ace", "lat": 33.3790348, "lon": -111.767053}, {"name": "Ace Hardware", "address": "5825 W Thunderbird Rd, Glendale, AZ 85306", "phone": "(623) 842-0800", "brand": "ace", "lat": 33.6106751, "lon": -112.1848673}, {"name": "Sun City True Value", "address": "15400 N 99th Ave, Sun City, AZ 85351", "showroom": false, "notes": "True Value hardware store.", "phone": "(623) 815-5200", "lat": 33.6218018, "lon": -112.2711148}, {"name": "Sunwest True Value", "address": "13599 W Camino Del Sol, Sun City West, AZ 85375", "showroom": false, "notes": "True Value hardware store.", "phone": "(623) 584-7888", "lat": 33.6543661, "lon": -112.3536267}, {"name": "ADR Hardware (True Value)", "address": "237 N Apache Trail, Apache Junction, AZ 85120", "showroom": false, "notes": "True Value hardware store.", "phone": "(480) 982-7461", "lat": 33.417099, "lon": -111.5472739}];
 
 // Live data is fetched from shared CDN data.json (updated by cron every 30 min)
-let DATA_JSON_URL = 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663500405152/KBhOWlAxkLJqFYvM.json';
+let DATA_JSON_URL = 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663500405152/xdCZCPiTxIkLVPSm.json';
 const REFRESH_SERVER_URL = 'https://map.inhousekru.com';
 let JT_JOBS = [];
 let GHL_OPPS = [];

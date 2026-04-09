@@ -468,6 +468,31 @@
     </div>
   </div>
 
+  <!-- Weather / Controls / Crew Panel -->
+  <div id="weather-toggle">
+    <h3>🌦 Weather Overlay</h3>
+    <div class="toggle-row">
+      <span class="toggle-label">Radar</span>
+      <button class="toggle-btn" id="btn-radar" onclick="toggleWeather()" title="Toggle live precipitation radar overlay from OpenWeatherMap">OFF</button>
+    </div>
+    <div class="weather-desc">Shows live precipitation radar over the map. Useful for checking rain/storm coverage across job sites.</div>
+    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+      <div class="toggle-row">
+        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">Live Data</span>
+        <button class="toggle-btn active" id="btn-refresh" onclick="refreshMapData()" title="Fetch latest jobs and leads now" style="font-size:14px;padding:2px 8px;line-height:1;">🔄</button>
+      </div>
+      <div id="refresh-timestamp" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">Loading…</div>
+    </div>
+    <!-- Crew Layer toggle -->
+    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+      <div class="toggle-row">
+        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">👷 Crew</span>
+        <button class="toggle-btn" id="btn-crew" onclick="toggleCrewLayer()" title="Show/hide crew member locations on the map">OFF</button>
+      </div>
+      <div id="crew-status" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">No crew online</div>
+    </div>
+  </div>
+
   <!-- Legend -->
   <div id="legend-panel">
   <div id="legend">
@@ -496,7 +521,7 @@
   </div>
 </div>
 
-<!-- Right Sidebar: Supplier Layers + Weather -->
+<!-- Right Sidebar: Supplier Layers only -->
 <div id="right-sidebar">
   <!-- Supplier Layers Panel -->
   <div id="supplier-panel">
@@ -573,30 +598,6 @@
     </div>
   </div>
 
-  <!-- Weather toggle -->
-  <div id="weather-toggle">
-    <h3>🌦 Weather Overlay</h3>
-    <div class="toggle-row">
-      <span class="toggle-label">Radar</span>
-      <button class="toggle-btn" id="btn-radar" onclick="toggleWeather()" title="Toggle live precipitation radar overlay from OpenWeatherMap">OFF</button>
-    </div>
-    <div class="weather-desc">Shows live precipitation radar over the map. Useful for checking rain/storm coverage across job sites.</div>
-    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
-      <div class="toggle-row">
-        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">Live Data</span>
-        <button class="toggle-btn active" id="btn-refresh" onclick="refreshMapData()" title="Fetch latest jobs and leads now" style="font-size:14px;padding:2px 8px;line-height:1;">🔄</button>
-      </div>
-      <div id="refresh-timestamp" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">Loading…</div>
-    </div>
-    <!-- Crew Layer toggle -->
-    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
-      <div class="toggle-row">
-        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">👷 Crew</span>
-        <button class="toggle-btn" id="btn-crew" onclick="toggleCrewLayer()" title="Show/hide crew member locations on the map">OFF</button>
-      </div>
-      <div id="crew-status" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">No crew online</div>
-    </div>
-  </div>
 </div>
 
 <!-- Mobile Bottom Drawer (hidden on desktop, shown on mobile via CSS) -->
