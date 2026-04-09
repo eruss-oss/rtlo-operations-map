@@ -1,6 +1,6 @@
 # RTLO Operations Command Center — Team SOP
 
-**Link:** https://files.manuscdn.com/user_upload_by_module/session_file/310519663500405152/qyFeRTCEqFvvFnSA.html
+**Link:** https://files.manuscdn.com/user_upload_by_module/session_file/310519663500405152/PrVBeLpMpiUXIRNC.html
 **Updated:** Automatically every morning. No login required — just open the link.
 
 ---
