@@ -15,13 +15,15 @@ import threading
 import time
 import os
 import json
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file, Response
 from datetime import datetime, timezone
 
 app = Flask(__name__)
 WORK_DIR = os.environ.get('WORK_DIR', '/home/ubuntu/rtlo-map')
 # Use /tmp for crew file since Render's project dir is read-only on free tier
 CREW_FILE = os.environ.get('CREW_FILE', '/tmp/crew_locations.json')
+# Map HTML is written to /tmp/map.html by the refresh process
+MAP_HTML_FILE = os.environ.get('MAP_HTML_FILE', '/tmp/map.html')
 
 # Prevent concurrent refresh runs
 _refresh_lock = threading.Lock()
@@ -48,6 +50,17 @@ CREW_COLORS = [
 # Shared API key for Shortcut authentication (simple bearer token)
 # Employees enter this once when setting up their Shortcut
 CREW_API_KEY = os.environ.get('CREW_API_KEY', 'rtlo-crew-2026')
+
+# On startup, copy map.html from project dir to /tmp so it can be served.
+# This ensures the map is available immediately without waiting for a refresh.
+def _init_map_html():
+    if not os.path.exists(MAP_HTML_FILE):
+        src = os.path.join(WORK_DIR, 'map.html')
+        if os.path.exists(src):
+            import shutil
+            shutil.copy2(src, MAP_HTML_FILE)
+
+_init_map_html()
 
 
 def load_crew():
@@ -246,6 +259,23 @@ def crew():
         active.append(member)
 
     return jsonify({'crew': active, 'count': len(active)})
+
+
+@app.route('/', methods=['GET'])
+def index():
+    """Serve the map HTML directly at the root URL."""
+    if os.path.exists(MAP_HTML_FILE):
+        return send_file(MAP_HTML_FILE, mimetype='text/html')
+    # Fallback: redirect to CDN version if map.html hasn't been built yet
+    cdn_url_file = os.path.join(WORK_DIR, 'data_cdn_url.txt')
+    fallback = 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663500405152/WGBQHqsgTnoVcsDn.html'
+    return Response(
+        f'<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url={fallback}">'
+        f'<title>RTLO Map</title></head><body>'
+        f'<p>Loading map... <a href="{fallback}">Click here if not redirected.</a></p>'
+        f'</body></html>',
+        mimetype='text/html'
+    )
 
 
 @app.route('/health', methods=['GET'])

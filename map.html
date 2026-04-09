@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTLO Operations Command Center</title>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0e1a; color: #fff; height: 100vh; overflow: hidden; }
+  #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+  /* Header */
+  #header {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+    background: linear-gradient(135deg, rgba(10,14,26,0.95) 0%, rgba(20,30,60,0.95) 100%);
+    border-bottom: 1px solid rgba(100,160,255,0.3);
+    padding: 10px 20px; display: flex; align-items: center; gap: 16px;
+    backdrop-filter: blur(10px);
+  }
+  #header h1 { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+  #header .subtitle { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  #last-updated { margin-left: auto; font-size: 11px; color: rgba(255,255,255,0.4); }
+
+  /* Weather alert banner */
+  #weather-banner {
+    position: absolute; top: 52px; left: 0; right: 0; z-index: 160;
+    background: linear-gradient(90deg, rgba(231,76,60,0.92), rgba(192,57,43,0.92));
+    border-bottom: 1px solid rgba(231,76,60,0.5);
+    padding: 6px 16px; display: none; align-items: center; gap: 10px;
+    backdrop-filter: blur(8px); font-size: 12px; font-weight: 600;
+  }
+  #weather-banner .banner-icon { font-size: 16px; }
+  #weather-banner .banner-text { flex: 1; }
+  #weather-banner .banner-close { cursor: pointer; opacity: 0.7; font-size: 16px; padding: 2px 6px; }
+  #weather-banner .banner-close:hover { opacity: 1; }
+
+  /* Filter toolbar */
+  #filter-toolbar {
+    position: absolute; top: 52px; left: 0; right: 0; z-index: 150;
+    background: rgba(8,12,22,0.93); border-bottom: 1px solid rgba(100,160,255,0.15);
+    padding: 5px 12px; display: flex; align-items: center; gap: 4px;
+    flex-wrap: nowrap; overflow-x: auto; backdrop-filter: blur(8px);
+    transition: top 0.2s; scrollbar-width: none;
+  }
+  #filter-toolbar::-webkit-scrollbar { display: none; }
+  #filter-toolbar.banner-shown { top: 88px; }
+  #filter-toolbar .filter-label {
+    font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase;
+    letter-spacing: 0.8px; margin-right: 4px; white-space: nowrap;
+  }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 20px; cursor: pointer;
+    font-size: 10.5px; font-weight: 600; border: 1.5px solid;
+    transition: all 0.18s; white-space: nowrap; user-select: none;
+  }
+  .filter-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .filter-chip .chip-diamond { width: 9px; height: 9px; transform: rotate(45deg); border-radius: 1px; flex-shrink: 0; display: inline-block; }
+  .filter-chip.active { opacity: 1; }
+  .filter-chip.inactive { opacity: 0.35; filter: grayscale(0.5); }
+  .filter-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 4px; }
+  .master-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 20px; cursor: pointer;
+    font-size: 10px; font-weight: 700; border: 1.5px solid;
+    transition: all 0.18s; white-space: nowrap; user-select: none;
+    letter-spacing: 0.3px;
+  }
+  .master-toggle.jt-master { color: #7ab8ff; border-color: rgba(122,184,255,0.5); background: rgba(122,184,255,0.1); }
+  .master-toggle.jt-master:hover { background: rgba(122,184,255,0.25); }
+  .master-toggle.ghl-master { color: #e74c3c; border-color: rgba(231,76,60,0.5); background: rgba(231,76,60,0.1); }
+  .master-toggle.ghl-master:hover { background: rgba(231,76,60,0.25); }
+
+  /* Zone filter chips */
+  .zone-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 7px; border-radius: 20px; cursor: pointer;
+    font-size: 10px; font-weight: 700; border: 1.5px solid;
+    transition: all 0.18s; white-space: nowrap; user-select: none;
+    letter-spacing: 0.3px;
+  }
+  .zone-chip.active { opacity: 1; }
+  .zone-chip.inactive { opacity: 0.3; filter: grayscale(0.6); }
+
+  /* Search bar */
+  #search-container {
+    position: absolute; top: 108px; left: 50%; transform: translateX(-50%);
+    z-index: 140; width: 380px;
+  }
+  #search-box {
+    width: 100%; padding: 10px 40px 10px 16px; border-radius: 25px;
+    border: 1px solid rgba(100,160,255,0.4);
+    background: rgba(10,14,26,0.92); color: #fff; font-size: 14px;
+    backdrop-filter: blur(10px); outline: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4); transition: border-color 0.2s;
+  }
+  #search-box:focus { border-color: rgba(100,160,255,0.8); }
+  #search-box::placeholder { color: rgba(255,255,255,0.4); }
+  #search-clear {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: rgba(255,255,255,0.3); cursor: pointer; font-size: 16px;
+    display: none; line-height: 1; padding: 4px;
+  }
+  #search-clear:hover { color: rgba(255,255,255,0.7); }
+  #autocomplete-list {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: rgba(10,14,26,0.97); border: 1px solid rgba(100,160,255,0.3);
+    border-radius: 14px; overflow: hidden; display: none;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6); z-index: 300;
+    max-height: 280px; overflow-y: auto;
+  }
+  .autocomplete-item {
+    padding: 10px 16px; cursor: pointer; font-size: 13px;
+    color: rgba(255,255,255,0.8); border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s; display: flex; align-items: flex-start; gap: 10px;
+  }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover, .autocomplete-item.selected { background: rgba(100,160,255,0.15); color: #fff; }
+  .autocomplete-icon { color: rgba(100,160,255,0.6); margin-top: 1px; flex-shrink: 0; }
+  .autocomplete-main { font-weight: 600; color: #fff; }
+  .autocomplete-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 1px; }
+  #search-result {
+    margin-top: 6px; padding: 12px 16px; border-radius: 12px;
+    background: rgba(10,14,26,0.97); border: 1px solid rgba(100,160,255,0.3);
+    font-size: 13px; display: none; backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  /* Left sidebar — dashboard + legend stacked */
+  #left-sidebar {
+    position: absolute; top: 108px; left: 16px; z-index: 100;
+    width: 210px; display: flex; flex-direction: column; gap: 10px;
+    max-height: calc(100vh - 120px); overflow-y: auto;
+    scrollbar-width: none;
+  }
+  #left-sidebar::-webkit-scrollbar { display: none; }
+
+  /* Dashboard panel */
+  #dashboard {
+    background: rgba(10,14,26,0.92);
+    border: 1px solid rgba(100,160,255,0.25); border-radius: 14px;
+    padding: 12px; backdrop-filter: blur(10px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  #dashboard h3 { font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .dash-section { margin-bottom: 14px; }
+  .dash-section h4 { font-size: 11px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .dash-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  .dash-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-right: 8px; }
+  .dash-label { font-size: 12px; color: rgba(255,255,255,0.75); flex: 1; }
+  .dash-count { font-size: 13px; font-weight: 700; color: #fff; }
+  .dash-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 10px 0; }
+  .dash-total { display: flex; justify-content: space-between; font-size: 13px; color: rgba(255,255,255,0.6); }
+  .dash-total span:last-child { font-weight: 700; color: #fff; }
+
+  /* Weather risk panel in dashboard */
+  #weather-risk-panel {
+    margin-top: 10px; padding: 8px 10px; border-radius: 8px;
+    background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3);
+    display: none;
+  }
+  #weather-risk-panel h4 { font-size: 10px; color: #e74c3c; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .risk-item { font-size: 11px; color: rgba(255,255,255,0.8); margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+
+  /* Legend panel — below dashboard on left */
+  #legend-panel {
+    background: rgba(10,14,26,0.92); border: 1px solid rgba(100,160,255,0.25);
+    border-radius: 14px; padding: 14px;
+    backdrop-filter: blur(10px); box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  #legend h3 { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .legend-section { margin-bottom: 12px; }
+  .legend-section h4 { font-size: 10px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .legend-item { display: flex; align-items: center; margin-bottom: 5px; gap: 8px; }
+  .legend-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .legend-zone { width: 14px; height: 10px; border-radius: 3px; flex-shrink: 0; opacity: 0.7; }
+  .legend-label { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+  /* Right sidebar container */
+  #right-sidebar {
+    position: absolute; top: 108px; right: 16px; z-index: 100;
+    width: 220px; display: flex; flex-direction: column; gap: 10px;
+    max-height: calc(100vh - 120px); overflow-y: auto;
+    scrollbar-width: none;
+  }
+  #right-sidebar::-webkit-scrollbar { display: none; }
+
+  /* Supplier layers panel */
+  #supplier-panel {
+    background: rgba(10,14,26,0.92);
+    border: 1px solid rgba(100,160,255,0.25);
+    border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(10px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  #supplier-panel h3 { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .supplier-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 10px; }
+  .supplier-info { display: flex; align-items: center; gap: 8px; }
+  .supplier-icon { font-size: 14px; line-height: 1; }
+  .supplier-name { font-size: 12px; color: rgba(255,255,255,0.8); }
+  .supplier-count { font-size: 11px; color: rgba(255,255,255,0.35); margin-left: 2px; }
+
+  /* Weather toggle */
+  #weather-toggle {
+    background: rgba(10,14,26,0.92);
+    border: 1px solid rgba(100,160,255,0.25);
+    border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(10px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  #weather-toggle h3 { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .toggle-label { font-size: 12px; color: rgba(255,255,255,0.7); flex: 1; }
+  .toggle-btn {
+    padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(100,160,255,0.4);
+    background: rgba(100,160,255,0.15); color: #7ab8ff; font-size: 11px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .toggle-btn.active { background: rgba(100,160,255,0.4); color: #fff; }
+  .toggle-btn:hover { background: rgba(100,160,255,0.3); }
+  .weather-desc { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 4px; line-height: 1.4; }
+
+  /* Popup */
+  .mapboxgl-popup-content {
+    background: rgba(10,14,26,0.97) !important;
+    border: 1px solid rgba(100,160,255,0.3) !important;
+    border-radius: 12px !important; padding: 0 !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+    min-width: 240px;
+  }
+  .mapboxgl-popup-tip { display: none !important; }
+  .popup-inner { padding: 14px 16px; }
+  .popup-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .popup-badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; margin-bottom: 8px;
+  }
+  .popup-row { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 3px; }
+  .popup-row span { color: rgba(255,255,255,0.9); }
+  .popup-link {
+    display: block; margin-top: 10px; padding: 7px 14px; border-radius: 8px;
+    background: rgba(100,160,255,0.2); color: #7ab8ff; text-decoration: none;
+    font-size: 12px; font-weight: 600; text-align: center;
+    border: 1px solid rgba(100,160,255,0.3); transition: all 0.2s;
+  }
+  .popup-link:hover { background: rgba(100,160,255,0.35); color: #fff; }
+  .weather-risk-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;
+    background: rgba(231,76,60,0.2); color: #e74c3c; border: 1px solid rgba(231,76,60,0.4);
+    margin-bottom: 6px;
+  }
+
+  /* Loading overlay */
+  #loading {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10,14,26,0.9); z-index: 200;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  #loading h2 { font-size: 20px; margin-bottom: 10px; color: #7ab8ff; }
+  #loading p { font-size: 13px; color: rgba(255,255,255,0.5); }
+  .spinner {
+    width: 40px; height: 40px; border: 3px solid rgba(100,160,255,0.2);
+    border-top-color: #7ab8ff; border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Weather zone tint */
+  .weather-zone-tint { /* applied via JS paint property */ }
+
+  /* ─── MOBILE RESPONSIVE ─────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    /* Header: compact */
+    #header { padding: 8px 12px; gap: 8px; }
+    #header h1, #header-title { font-size: 14px !important; }
+    #header .subtitle { display: none; }
+    #last-updated { font-size: 10px; }
+
+    /* Filter toolbar: scrollable row, smaller chips */
+    #filter-toolbar { padding: 4px 8px; gap: 3px; top: 44px; }
+    #filter-toolbar.banner-shown { top: 80px; }
+    .filter-chip { font-size: 9.5px; padding: 2px 6px; }
+    .master-toggle { font-size: 9px; padding: 2px 6px; }
+    .zone-chip { font-size: 9px; padding: 2px 5px; }
+
+    /* Search: full width, below toolbar */
+    #search-container {
+      top: 88px; left: 8px; right: 8px;
+      width: auto; transform: none;
+    }
+    #search-box { font-size: 13px; padding: 9px 36px 9px 14px; }
+
+    /* Hide left and right sidebars by default on mobile */
+    #left-sidebar { display: none; }
+    #right-sidebar { display: none; }
+
+    /* Mobile bottom drawer — replaces sidebars */
+    #mobile-drawer {
+      display: flex !important;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(10,14,26,0.97); border-top: 1px solid rgba(100,160,255,0.25);
+      backdrop-filter: blur(12px);
+      flex-direction: column;
+      transition: transform 0.3s ease;
+      max-height: 70vh;
+    }
+    #mobile-drawer.collapsed { transform: translateY(calc(100% - 44px)); }
+    #mobile-drawer-handle {
+      display: flex !important;
+      align-items: center; justify-content: space-between;
+      padding: 10px 16px; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    #mobile-drawer-handle .drawer-title {
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.8);
+      display: flex; align-items: center; gap: 10px;
+    }
+    #mobile-drawer-handle .drawer-counts {
+      font-size: 11px; color: rgba(255,255,255,0.4);
+    }
+    #mobile-drawer-handle .drawer-chevron {
+      font-size: 14px; color: rgba(255,255,255,0.4); transition: transform 0.3s;
+    }
+    #mobile-drawer.collapsed .drawer-chevron { transform: rotate(180deg); }
+    #mobile-drawer-content {
+      overflow-y: auto; padding: 12px 16px 24px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    /* Mini dashboard in drawer */
+    .mobile-dash-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .mobile-dash-row:last-child { border-bottom: none; }
+    .mobile-dash-label { font-size: 12px; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 8px; }
+    .mobile-dash-count { font-size: 14px; font-weight: 700; color: #fff; }
+    /* Mobile quick-action row */
+    #mobile-quick-actions {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    #mobile-quick-actions button {
+      flex: 1; min-width: 80px;
+      padding: 8px 10px; border-radius: 10px;
+      background: rgba(100,160,255,0.15); border: 1px solid rgba(100,160,255,0.3);
+      color: #7ab8ff; font-size: 11px; font-weight: 600; cursor: pointer;
+    }
+    #mobile-quick-actions button.active {
+      background: rgba(100,160,255,0.4); color: #fff;
+    }
+
+    /* Popups: wider on mobile */
+    .mapboxgl-popup-content { min-width: 260px !important; max-width: 90vw !important; }
+    .popup-inner { padding: 12px 14px; }
+    .popup-title { font-size: 15px; }
+    .popup-link { padding: 9px 10px; font-size: 13px; }
+
+    /* Map nav controls: move up above drawer */
+    .mapboxgl-ctrl-top-right { top: 44px !important; }
+    .mapboxgl-ctrl-bottom-right { bottom: 50px !important; }
+  }
+
+  /* Mobile drawer hidden on desktop */
+  #mobile-drawer { display: none; }
+  #mobile-drawer-handle { display: none; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <h2>RTLO Command Center</h2>
+  <p>Loading operations map...</p>
+</div>
+
+<div id="map"></div>
+
+<!-- Header -->
+<div id="header">
+  <div>
+    <div id="header-title" style="font-size:18px;font-weight:700;color:#fff;letter-spacing:0.5px;">⚓ RTLO Operations Command Center</div>
+    <div class="subtitle">Rising Tide Luxury Outdoors · Phoenix Metro</div>
+  </div>
+  <div id="last-updated">Updated: <span id="update-time">Loading...</span></div>
+</div>
+
+<!-- Weather Alert Banner -->
+<div id="weather-banner">
+  <span class="banner-icon">⚠️</span>
+  <span class="banner-text" id="banner-text">Weather alert active</span>
+  <span class="banner-close" onclick="document.getElementById('weather-banner').style.display='none';document.getElementById('filter-toolbar').classList.remove('banner-shown');stopWeatherFlash();">✕</span>
+</div>
+
+<!-- Filter Toolbar -->
+<div id="filter-toolbar">
+  <div class="master-toggle jt-master" id="jt-master-btn" onclick="masterToggle('jt')" title="Toggle all JobTread pins">JT ▾</div>
+  <span class="filter-label">JobTread:</span>
+  <div class="filter-chip active" id="chip-jt-active" onclick="toggleChip('jt-active')" style="color:#27ae60;border-color:#27ae60;background:rgba(39,174,96,0.12)">
+    <div class="chip-dot" style="background:#27ae60"></div>Active
+  </div>
+  <div class="filter-chip active" id="chip-jt-sold" onclick="toggleChip('jt-sold')" style="color:#9b59b6;border-color:#9b59b6;background:rgba(155,89,182,0.12)">
+    <div class="chip-dot" style="background:#9b59b6"></div>Sold / Intake
+  </div>
+  <div class="filter-divider"></div>
+  <div class="master-toggle ghl-master" id="ghl-master-btn" onclick="masterToggle('ghl')" title="Toggle all GHL pins">GHL ▾</div>
+  <span class="filter-label">GHL:</span>
+  <div class="filter-chip active" id="chip-ghl-appt" onclick="toggleChip('ghl-appt')" style="color:#ff6b35;border-color:#ff6b35;background:rgba(255,107,53,0.12)">
+    <div class="chip-diamond" style="background:#ff6b35"></div>Appt Booked
+  </div>
+  <div class="filter-chip active" id="chip-ghl-consult" onclick="toggleChip('ghl-consult')" style="color:#e91e8c;border-color:#e91e8c;background:rgba(233,30,140,0.12)">
+    <div class="chip-diamond" style="background:#e91e8c"></div>Consultation
+  </div>
+  <div class="filter-chip active" id="chip-ghl-proposal" onclick="toggleChip('ghl-proposal')" style="color:#f1c40f;border-color:#f1c40f;background:rgba(241,196,15,0.12)">
+    <div class="chip-diamond" style="background:#f1c40f"></div>Proposal
+  </div>
+  <div class="filter-chip active" id="chip-ghl-permitting" onclick="toggleChip('ghl-permitting')" style="color:#e74c3c;border-color:#e74c3c;background:rgba(231,76,60,0.12)">
+    <div class="chip-diamond" style="background:#e74c3c"></div>Permitting
+  </div>
+  <div class="filter-divider"></div>
+  <span class="filter-label">Zone:</span>
+  <div class="zone-chip active" id="zonechip-1" onclick="toggleZoneChip('Zone 1')" style="color:#f1c40f;border-color:rgba(241,196,15,0.5);background:rgba(241,196,15,0.1)">Z1</div>
+  <div class="zone-chip active" id="zonechip-2a" onclick="toggleZoneChip('Zone 2A')" style="color:#e67e22;border-color:rgba(230,126,34,0.5);background:rgba(230,126,34,0.1)">Z2A</div>
+  <div class="zone-chip active" id="zonechip-2b" onclick="toggleZoneChip('Zone 2B')" style="color:#d35400;border-color:rgba(211,84,0,0.5);background:rgba(211,84,0,0.1)">Z2B</div>
+  <div class="zone-chip active" id="zonechip-3a" onclick="toggleZoneChip('Zone 3A')" style="color:#27ae60;border-color:rgba(39,174,96,0.5);background:rgba(39,174,96,0.1)">Z3A</div>
+  <div class="zone-chip active" id="zonechip-3b" onclick="toggleZoneChip('Zone 3B')" style="color:#1e8449;border-color:rgba(30,132,73,0.5);background:rgba(30,132,73,0.1)">Z3B</div>
+  <div class="zone-chip active" id="zonechip-4a" onclick="toggleZoneChip('Zone 4A')" style="color:#2980b9;border-color:rgba(41,128,185,0.5);background:rgba(41,128,185,0.1)">Z4A</div>
+  <div class="zone-chip active" id="zonechip-4b" onclick="toggleZoneChip('Zone 4B')" style="color:#1a5276;border-color:rgba(26,82,118,0.5);background:rgba(26,82,118,0.1)">Z4B</div>
+  <div class="zone-chip active" id="zonechip-5a" onclick="toggleZoneChip('Zone 5A')" style="color:#8e44ad;border-color:rgba(142,68,173,0.5);background:rgba(142,68,173,0.1)">Z5A</div>
+  <div class="zone-chip active" id="zonechip-5b" onclick="toggleZoneChip('Zone 5B')" style="color:#6c3483;border-color:rgba(108,52,131,0.5);background:rgba(108,52,131,0.1)">Z5B</div>
+</div>
+
+<!-- Search -->
+<div id="search-container">
+  <div style="position:relative;">
+    <input id="search-box" type="text" placeholder="🔍  Search address, supplier, or job..." autocomplete="off">
+    <span id="search-clear" onclick="clearSearch()">✕</span>
+    <div id="autocomplete-list"></div>
+  </div>
+  <div id="search-result"></div>
+</div>
+
+<!-- Left Sidebar: Dashboard + Legend -->
+<div id="left-sidebar">
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <h3>📊 Live Dashboard</h3>
+    <div class="dash-section">
+      <h4>JobTread Jobs</h4>
+      <div id="jt-stats"></div>
+    </div>
+    <hr class="dash-divider">
+    <div class="dash-section">
+      <h4>GHL Pipeline</h4>
+      <div id="ghl-stats"></div>
+    </div>
+    <hr class="dash-divider">
+    <div class="dash-total">
+      <span>Total on Map</span>
+      <span id="total-count">—</span>
+    </div>
+    <div id="weather-risk-panel">
+      <h4>⚠️ Weather Risks Today</h4>
+      <div id="weather-risk-items"></div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div id="legend-panel">
+  <div id="legend">
+    <h3>Map Legend</h3>
+    <div class="legend-section">
+      <h4>Job Status (JobTread)</h4>
+      <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div><div class="legend-label">Active Production</div></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9b59b6"></div><div class="legend-label">Sold / Project Intake</div></div>
+    </div>
+    <div class="legend-section">
+      <h4>GHL Pipeline (Pre-Sale)</h4>
+      <div class="legend-item"><div style="width:11px;height:11px;background:#ff6b35;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#ff6b35;">Appt Booked</div></div>
+      <div class="legend-item"><div style="width:11px;height:11px;background:#e91e8c;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#e91e8c;">Consultation</div></div>
+      <div class="legend-item"><div style="width:11px;height:11px;background:#f1c40f;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#f1c40f;">Proposal</div></div>
+      <div class="legend-item"><div style="width:11px;height:11px;background:#e74c3c;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#e74c3c;">Permitting</div></div>
+    </div>
+    <div class="legend-section">
+      <h4>Service Zones</h4>
+      <div class="legend-item"><div class="legend-zone" style="background:#f1c40f"></div><div class="legend-label">Zone 1 (Core)</div></div>
+      <div class="legend-item"><div class="legend-zone" style="background:#e67e22"></div><div class="legend-label">Zone 2A / 2B</div></div>
+      <div class="legend-item"><div class="legend-zone" style="background:#27ae60"></div><div class="legend-label">Zone 3A / 3B</div></div>
+      <div class="legend-item"><div class="legend-zone" style="background:#2980b9"></div><div class="legend-label">Zone 4A / 4B</div></div>
+      <div class="legend-item"><div class="legend-zone" style="background:#8e44ad"></div><div class="legend-label">Zone 5A / 5B</div></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- Right Sidebar: Supplier Layers + Weather -->
+<div id="right-sidebar">
+  <!-- Supplier Layers Panel -->
+  <div id="supplier-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <h3 style="margin:0;">🏪 Supplier Layers</h3>
+      <div style="display:flex;gap:6px;">
+        <button class="toggle-btn active" id="btn-suppliers-all" onclick="toggleAllSuppliers(true)" style="font-size:10px;padding:3px 8px;">All ON</button>
+        <button class="toggle-btn" id="btn-suppliers-none" onclick="toggleAllSuppliers(false)" style="font-size:10px;padding:3px 8px;">All OFF</button>
+      </div>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#f96302;">▲</span><span class="supplier-name">Home Depot</span><span class="supplier-count" id="hd-count"></span></div>
+      <button class="toggle-btn" id="btn-homedepot" onclick="toggleSupplier('homedepot')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#2ecc71;">◆</span><span class="supplier-name">SiteOne Family</span><span class="supplier-count" id="siteone-count"></span></div>
+      <button class="toggle-btn" id="btn-siteone" onclick="toggleSupplier('siteone')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#3498db;">◆</span><span class="supplier-name">Sprinkler World</span><span class="supplier-count" id="sw-count"></span></div>
+      <button class="toggle-btn" id="btn-sprinklerworld" onclick="toggleSupplier('sprinklerworld')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#e74c3c;">★</span><span class="supplier-name">Ace Hardware</span><span class="supplier-count" id="ace-count"></span></div>
+      <button class="toggle-btn" id="btn-ace" onclick="toggleSupplier('ace')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#a8e063;">◆</span><span class="supplier-name">Turf Suppliers</span><span class="supplier-count" id="turf-count"></span></div>
+      <button class="toggle-btn" id="btn-turf" onclick="toggleSupplier('turf')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#d4a017;">◆</span><span class="supplier-name">Rock & Aggregate</span><span class="supplier-count" id="rock-count"></span></div>
+      <button class="toggle-btn" id="btn-rock" onclick="toggleSupplier('rock')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#9b59b6;">◆★</span><span class="supplier-name">Tile & Stone</span><span class="supplier-count" id="tile-count"></span></div>
+      <button class="toggle-btn" id="btn-tile" onclick="toggleSupplier('tile')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#e91e8c;">◆★</span><span class="supplier-name">Hardscapes</span><span class="supplier-count" id="hardscape-count"></span></div>
+      <button class="toggle-btn" id="btn-hardscape" onclick="toggleSupplier('hardscape')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#00bcd4;">★</span><span class="supplier-name">Floor & Decor</span><span class="supplier-count" id="floordecor-count"></span></div>
+      <button class="toggle-btn" id="btn-floordecor" onclick="toggleSupplier('floordecor')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#4caf50;">◆</span><span class="supplier-name">Horizon Supply</span><span class="supplier-count" id="horizon-count"></span></div>
+      <button class="toggle-btn" id="btn-horizon" onclick="toggleSupplier('horizon')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#ff6b00;">🔥</span><span class="supplier-name">BBQ / Outdoor Living</span><span class="supplier-count" id="bbq-count"></span></div>
+      <button class="toggle-btn" id="btn-bbq" onclick="toggleSupplier('bbq')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#7ab8ff;">◆</span><span class="supplier-name">RWC</span><span class="supplier-count" id="other-count"></span></div>
+      <button class="toggle-btn" id="btn-other" onclick="toggleSupplier('other')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#66bb6a;">🌿</span><span class="supplier-name">Nurseries</span><span class="supplier-count" id="nursery-count"></span></div>
+      <button class="toggle-btn" id="btn-nursery" onclick="toggleSupplier('nursery')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#80deea;">★</span><span class="supplier-name">Plumbing & Fixtures</span><span class="supplier-count" id="plumbing-count"></span></div>
+      <button class="toggle-btn" id="btn-plumbing" onclick="toggleSupplier('plumbing')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#29b6f6;">💧</span><span class="supplier-name">Pool & Fountain</span><span class="supplier-count" id="pool-count"></span></div>
+      <button class="toggle-btn" id="btn-pool" onclick="toggleSupplier('pool')">OFF</button>
+    </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#ffd54f;">◆</span><span class="supplier-name">Miscellaneous</span><span class="supplier-count" id="misc-count"></span></div>
+      <button class="toggle-btn" id="btn-misc" onclick="toggleSupplier('misc')">OFF</button>
+    </div>
+  </div>
+
+  <!-- Weather toggle -->
+  <div id="weather-toggle">
+    <h3>🌦 Weather Overlay</h3>
+    <div class="toggle-row">
+      <span class="toggle-label">Radar</span>
+      <button class="toggle-btn" id="btn-radar" onclick="toggleWeather()" title="Toggle live precipitation radar overlay from OpenWeatherMap">OFF</button>
+    </div>
+    <div class="weather-desc">Shows live precipitation radar over the map. Useful for checking rain/storm coverage across job sites.</div>
+    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+      <div class="toggle-row">
+        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">Live Data</span>
+        <button class="toggle-btn active" id="btn-refresh" onclick="refreshMapData()" title="Fetch latest jobs and leads now" style="font-size:14px;padding:2px 8px;line-height:1;">🔄</button>
+      </div>
+      <div id="refresh-timestamp" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">Loading…</div>
+    </div>
+    <!-- Crew Layer toggle -->
+    <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+      <div class="toggle-row">
+        <span class="toggle-label" style="font-size:11px;color:rgba(255,255,255,0.6);">👷 Crew</span>
+        <button class="toggle-btn" id="btn-crew" onclick="toggleCrewLayer()" title="Show/hide crew member locations on the map">OFF</button>
+      </div>
+      <div id="crew-status" style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:4px;text-align:right;">No crew online</div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Bottom Drawer (hidden on desktop, shown on mobile via CSS) -->
+<div id="mobile-drawer" class="collapsed">
+  <div id="mobile-drawer-handle" onclick="toggleMobileDrawer()">
+    <div class="drawer-title">
+      <span>📊 Dashboard</span>
+      <span class="drawer-counts" id="mobile-total-count"></span>
+    </div>
+    <span class="drawer-chevron">▲</span>
+  </div>
+  <div id="mobile-drawer-content">
+    <!-- Mini stats -->
+    <div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">JobTread Jobs</div>
+      <div id="mobile-jt-stats"></div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">GHL Pipeline</div>
+      <div id="mobile-ghl-stats"></div>
+    </div>
+    <!-- Quick actions -->
+    <div id="mobile-quick-actions">
+      <button id="mobile-btn-radar" onclick="toggleWeather();updateMobileRadarBtn()">🌦 Radar: ON</button>
+      <button onclick="refreshMapData()">🔄 Refresh</button>
+      <button onclick="map.flyTo({center:[-111.9,33.45],zoom:8})">🎯 Reset View</button>
+    </div>
+    <div id="mobile-refresh-ts" style="font-size:10px;color:rgba(255,255,255,0.3);text-align:center;">Loading…</div>
+  </div>
+</div>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiZXJ1c3Nub2Z1c3MiLCJhIjoiY21ubTRlemtrMTVrczJxcTcwbmk2dnRtOCJ9.zPPUauWOdG2LpSv5q8ZJ1g';
+
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v11',
+  center: [-111.9, 33.45],
+  zoom: 8,
+  pitch: 0,
+  bearing: 0
+});
+
+map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+map.addControl(new mapboxgl.ScaleControl({ unit: 'imperial' }), 'bottom-right');
+
+// Force-hide loading overlay on style load OR after 4 seconds max
+function hideLoadingOverlay() {
+  const el = document.getElementById('loading');
+  if (el) el.style.display = 'none';
+}
+map.once('style.load', hideLoadingOverlay);
+setTimeout(hideLoadingOverlay, 4000);
+
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+// Supplier data is static (baked in at build time)
+const HD_STORES = [{"name": "Home Depot", "address": "2217 E Indian School Rd, Phoenix, AZ 85016", "lat": 33.494558, "lng": -112.033697}, {"name": "Home Depot", "address": "3550 E Thomas Rd, Phoenix, AZ 85018", "lat": 33.480471, "lng": -112.004633}, {"name": "Home Depot", "address": "7 W Baseline Rd, Tempe, AZ 85283", "lat": 33.378227, "lng": -111.939425}, {"name": "Home Depot", "address": "1520 N 75th Ave, Phoenix, AZ 85035", "lat": 33.463097, "lng": -112.220455}, {"name": "Home Depot", "address": "2935 W Bethany Home Rd, Phoenix, AZ 85017", "lat": 33.523992, "lng": -112.123294}, {"name": "Home Depot", "address": "5035 W McDowell Rd, Phoenix, AZ 85035", "lat": 33.465623, "lng": -112.168592}, {"name": "Home Depot", "address": "2040 W Dunlap Ave, Phoenix, AZ 85021", "lat": 33.56764, "lng": -112.102625}, {"name": "Home Depot", "address": "5110 N 27th Ave, Phoenix, AZ 85017", "lat": 33.511733, "lng": -112.116977}, {"name": "Home Depot", "address": "4111 E Thunderbird Rd, Phoenix, AZ 85032", "lat": 33.605473, "lng": -112.055482}, {"name": "Home Depot", "address": "21001 N Tatum Blvd, Phoenix, AZ 85050", "lat": 33.674257, "lng": -111.974348}, {"name": "Home Depot", "address": "2350 W Happy Valley Rd, Phoenix, AZ 85085", "lat": 33.714138, "lng": -112.11019}, {"name": "Home Depot", "address": "2020 E Camelback Rd, Phoenix, AZ 85016", "lat": 33.509832, "lng": -112.038179}, {"name": "Home Depot", "address": "5110 S 16th St, Phoenix, AZ 85040", "lat": 33.404343, "lng": -112.047168}, {"name": "Home Depot", "address": "1940 E Ray Rd, Chandler, AZ 85225", "lat": 33.32094, "lng": -111.808425}, {"name": "Home Depot", "address": "2000 S Arizona Ave, Chandler, AZ 85286", "lat": 33.276764, "lng": -111.841527}, {"name": "Home Depot", "address": "3550 W Chandler Blvd, Chandler, AZ 85226", "lat": 33.305519, "lng": -111.903264}, {"name": "Home Depot", "address": "1550 E Germann Rd, Gilbert, AZ 85296", "lat": 33.27764, "lng": -111.776336}, {"name": "Home Depot", "address": "1940 S Higley Rd, Gilbert, AZ 85295", "lat": 33.316419, "lng": -111.721262}, {"name": "Home Depot", "address": "1830 E Baseline Rd, Gilbert, AZ 85233", "lat": 33.379068, "lng": -111.759077}, {"name": "Home Depot", "address": "1235 S Power Rd, Mesa, AZ 85206", "lat": 33.392709, "lng": -111.682931}, {"name": "Home Depot", "address": "1910 W Main St, Mesa, AZ 85201", "lat": 33.414978, "lng": -111.872611}, {"name": "Home Depot", "address": "6780 E Superstition Springs Blvd, Mesa, AZ 85206", "lat": 33.384654, "lng": -111.690934}, {"name": "Home Depot", "address": "1520 S Greenfield Rd, Mesa, AZ 85206", "lat": 33.387698, "lng": -111.73676}, {"name": "Home Depot", "address": "1620 N Scottsdale Rd, Scottsdale, AZ 85257", "lat": 33.447257, "lng": -111.926529}, {"name": "Home Depot", "address": "8900 E Indian Bend Rd, Scottsdale, AZ 85250", "lat": 33.538486, "lng": -111.88936}, {"name": "Home Depot", "address": "15500 N Hayden Rd, Scottsdale, AZ 85260", "lat": 33.626956, "lng": -111.89786}, {"name": "Home Depot", "address": "7000 W Bell Rd, Glendale, AZ 85308", "lat": 33.638334, "lng": -112.208539}, {"name": "Home Depot", "address": "5710 W Peoria Ave, Glendale, AZ 85302", "lat": 33.581972, "lng": -112.18022}, {"name": "Home Depot", "address": "6950 N 95th Ave, Glendale, AZ 85305", "lat": 33.53596, "lng": -112.26443}, {"name": "Home Depot", "address": "8350 W Bell Rd, Peoria, AZ 85382", "lat": 33.638056, "lng": -112.240599}, {"name": "Home Depot", "address": "8765 W Thunderbird Rd, Peoria, AZ 85381", "lat": 33.609905, "lng": -112.247377}, {"name": "Home Depot", "address": "13750 W Bell Rd, Surprise, AZ 85374", "lat": 33.64123, "lng": -112.356964}, {"name": "Home Depot", "address": "15945 W Waddell Rd, Surprise, AZ 85379", "lat": 33.609601, "lng": -112.398781}, {"name": "Home Depot", "address": "1870 N Litchfield Rd, Goodyear, AZ 85395", "lat": 33.467647, "lng": -112.358218}, {"name": "Home Depot", "address": "1450 N Dysart Rd, Avondale, AZ 85323", "lat": 33.44893, "lng": -112.342696}, {"name": "Home Depot", "address": "22550 S Ellsworth Rd, Queen Creek, AZ 85142", "lat": 33.241701, "lng": -111.634519}, {"name": "Home Depot", "address": "20865 N John Wayne Pkwy, Maricopa, AZ 85139", "lat": 33.068307, "lng": -112.046252}, {"name": "Home Depot", "address": "1030 N Idaho Rd, Apache Junction, AZ 85120", "lat": 33.423026, "lng": -111.5461}, {"name": "Home Depot", "address": "1840 E Warner Rd, Tempe, AZ 85284", "lat": 33.33575, "lng": -111.908905}];
+const SITEONE_STORES = [{"name": "SiteOne Landscape Supply - Scottsdale", "address": "7501 E Monte Cristo Ave, Scottsdale, AZ 85260", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.630951, "lon": -111.918197}, {"name": "SiteOne Stone Center (Cutting Edge) - Glendale", "address": "7540 N 67th Ave, Glendale, AZ 85301", "phone": "", "website": "siteone.com", "notes": "Cutting Edge Stone - acquired by SiteOne", "showroom": false, "ranking": "Preferred", "lat": 33.546845, "lon": -112.206078}, {"name": "SiteOne Landscape Supply #1106 - Goodyear", "address": "3595 N Cotton Ln, Goodyear, AZ 85395", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.487357, "lon": -112.425268}, {"name": "SiteOne Landscape Supply - Mesa", "address": "1530 W Broadway Rd, Mesa, AZ 85202", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.407613, "lon": -111.864467}, {"name": "SiteOne Landscape Supply - Peoria", "address": "9350 W Peoria Ave, Peoria, AZ 85345", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.580733, "lon": -112.261042}, {"name": "SiteOne Landscape Supply - Gilbert (Val Vista)", "address": "1155 N Val Vista Dr, Gilbert, AZ 85234", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.374902, "lon": -111.755518}, {"name": "SiteOne Landscape Supply - Gilbert (S Gilbert)", "address": "3030 S Gilbert Rd, Gilbert, AZ 85295", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.332067, "lon": -111.790574}, {"name": "SiteOne Landscape Supply - Chandler", "address": "4835 E Chandler Blvd, Chandler, AZ 85226", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.305211, "lon": -111.977678}, {"name": "SiteOne Landscape Supply - Surprise", "address": "13415 W Westgate Dr, Surprise, AZ 85378", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.640055, "lon": -112.348531}, {"name": "SiteOne Landscape Supply - Tempe", "address": "2121 S Rural Rd, Tempe, AZ 85282", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.404588, "lon": -111.925649}, {"name": "SiteOne Landscape Supply - Queen Creek", "address": "22705 S Ellsworth Rd, Queen Creek, AZ 85142", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.24281, "lon": -111.632825}, {"name": "Pioneer Landscape Centers (SiteOne) - Apache Junction", "address": "3451 S Meridian Rd, Apache Junction, AZ 85120", "phone": "", "website": "pioneerco.com", "notes": "Pioneer - acquired by SiteOne", "showroom": false, "ranking": "Preferred", "lat": 33.38411, "lon": -111.58026}, {"name": "Pioneer Landscape Centers (SiteOne) - N Scottsdale", "address": "7452 E Adobe Dr, Scottsdale, AZ 85255", "phone": "", "website": "pioneerco.com", "notes": "Good client-facing yard. Pioneer - acquired by SiteOne", "showroom": false, "ranking": "Preferred", "lat": 33.689519, "lon": -111.919947}, {"name": "Pioneer Landscape Centers (SiteOne) - Peoria North", "address": "11450 W Northern Ave, Peoria, AZ 85345", "phone": "", "website": "pioneerco.com", "notes": "Pioneer - acquired by SiteOne", "showroom": false, "ranking": "Preferred", "lat": 33.55162, "lon": -112.30562}, {"name": "Pioneer Landscape Centers (SiteOne) - Gilbert/Guadalupe", "address": "609 W Guadalupe Rd, Gilbert, AZ 85233", "phone": "", "website": "pioneerco.com", "notes": "Pioneer - acquired by SiteOne", "showroom": false, "ranking": "Preferred", "lat": 33.364, "lon": -111.80264}, {"name": "Pioneer Landscape Centers (SiteOne) - N Chandler", "address": "11243 E Willis Rd, Chandler, AZ 85286", "phone": "", "website": "pioneerco.com", "notes": "Pioneer - acquired by SiteOne", "showroom": false, "ranking": "Preferred", "lat": 33.28378, "lon": -111.840855}, {"name": "Pioneer Landscape Centers - Deer Valley", "address": "1638 E Deer Valley Rd, Phoenix, AZ 85024", "phone": "", "website": "siteone.com", "notes": "Former Telluride Natural Stone \u2014 now Pioneer/SiteOne. Showroom with stone and hardscape display.", "showroom": true, "ranking": "Preferred", "lat": 33.688813, "lon": -112.046778}, {"name": "SiteOne Stone Center - Indian School", "address": "2514 E Indian School Rd, Phoenix, AZ 85016", "phone": "", "website": "siteone.com", "notes": "Stone center", "showroom": false, "ranking": "Preferred", "lat": 33.49516, "lon": -112.027409}, {"name": "SiteOne Landscape Supply - Scottsdale McDowell", "address": "7025 E McDowell Rd, Scottsdale, AZ 85257", "phone": "", "website": "siteone.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.46508, "lon": -111.92918}, {"name": "Arizona Stone Brick Pavers", "address": "12473 N 92nd Dr, Peoria, AZ 85381", "showroom": true, "notes": "Natural stone, pavers, and hardscape materials. Showroom.", "phone": "(623) 878-5080", "lat": 33.5981564, "lon": -112.256785}, {"name": "Arizona Stone Brick Pavers", "address": "4502 E Virginia St, Mesa, AZ 85215", "showroom": true, "notes": "Natural stone, pavers, and hardscape materials. Showroom.", "phone": "(480) 641-1042", "lat": 33.4774823, "lon": -111.7337245}];
+const SW_STORES = [{"name": "Sprinkler World", "address": "2114 E Indian School Rd, Phoenix, AZ 85016", "phone": "(602) 954-9022", "brand": "sprinklerworld", "lat": 33.494876, "lon": -112.0363052}, {"name": "Sprinkler World", "address": "4727 E Bell Rd, Phoenix, AZ 85032", "phone": "(602) 992-1882", "brand": "sprinklerworld", "lat": 33.6384458, "lon": -111.979932}, {"name": "Sprinkler World", "address": "1925 W Rose Garden Ln, Phoenix, AZ 85027", "phone": "(623) 587-7676", "brand": "sprinklerworld", "lat": 33.6760314, "lon": -112.101253}, {"name": "Sprinkler World", "address": "3164 S Country Club Dr, Mesa, AZ 85210", "phone": "(480) 892-5001", "brand": "sprinklerworld", "lat": 33.3575046, "lon": -111.8424388}, {"name": "Sprinkler World", "address": "16700 N 51st Ave, Glendale, AZ 85306", "phone": "(602) 938-3141", "brand": "sprinklerworld", "lat": 33.6376039, "lon": -112.1695304}, {"name": "Sprinkler World", "address": "1001 N Jackrabbit Trail, Buckeye, AZ 85326", "phone": "(623) 932-4500", "brand": "sprinklerworld", "lat": 33.4503811, "lon": -112.4788172}];
+const ACE_STORES = [{"name": "Ace Hardware", "address": "4025 E Thomas Rd, Phoenix, AZ 85018", "phone": "(602) 955-6000", "brand": "ace", "lat": 33.4803366, "lon": -111.994884}, {"name": "Ace Hardware", "address": "3320 W Camelback Rd, Phoenix, AZ 85017", "phone": "(602) 242-4400", "brand": "ace", "lat": 33.5093569, "lon": -112.1308473}, {"name": "Ace Hardware", "address": "7620 E Indian School Rd, Scottsdale, AZ 85251", "phone": "(480) 941-2200", "brand": "ace", "lat": 33.4966417, "lon": -111.916563}, {"name": "Ace Hardware", "address": "1840 E Warner Rd, Tempe, AZ 85284", "phone": "(480) 897-0800", "brand": "ace", "lat": 33.335566, "lon": -111.9105439}, {"name": "Ace Hardware", "address": "1640 E University Dr, Mesa, AZ 85203", "phone": "(480) 834-4400", "brand": "ace", "lat": 33.4224599, "lon": -111.7957458}, {"name": "Ace Hardware", "address": "4830 E Ray Rd, Phoenix, AZ 85044", "phone": "(480) 706-0800", "brand": "ace", "lat": 33.3199254, "lon": -111.9799863}, {"name": "Ace Hardware", "address": "13415 W Bell Rd, Surprise, AZ 85374", "phone": "(623) 546-0800", "brand": "ace", "lat": 33.638804, "lon": -112.3493905}, {"name": "Ace Hardware", "address": "3030 S Gilbert Rd, Gilbert, AZ 85296", "phone": "(480) 899-0800", "brand": "ace", "lat": 33.335386, "lon": -111.789883}, {"name": "Ace Hardware", "address": "4040 E Chandler Blvd, Phoenix, AZ 85048", "phone": "(480) 706-0800", "brand": "ace", "lat": 33.305129, "lon": -111.9966791}, {"name": "Ace Hardware", "address": "7540 W Thunderbird Rd, Peoria, AZ 85381", "phone": "(623) 979-0800", "brand": "ace", "lat": 33.6104021, "lon": -112.2212293}, {"name": "Ace Hardware", "address": "21001 N Tatum Blvd, Phoenix, AZ 85050", "phone": "(480) 473-0800", "brand": "ace", "lat": 33.6781378, "lon": -111.9711105}, {"name": "Ace Hardware", "address": "2040 W Guadalupe Rd, Mesa, AZ 85202", "phone": "(480) 833-0800", "brand": "ace", "lat": 33.3641172, "lon": -111.8783909}, {"name": "Ace Hardware", "address": "1602 E Baseline Rd, Gilbert, AZ 85233", "phone": "(480) 892-0800", "brand": "ace", "lat": 33.3790348, "lon": -111.767053}, {"name": "Ace Hardware", "address": "5825 W Thunderbird Rd, Glendale, AZ 85306", "phone": "(623) 842-0800", "brand": "ace", "lat": 33.6106751, "lon": -112.1848673}, {"name": "Sun City True Value", "address": "15400 N 99th Ave, Sun City, AZ 85351", "showroom": false, "notes": "True Value hardware store.", "phone": "(623) 815-5200", "lat": 33.6218018, "lon": -112.2711148}, {"name": "Sunwest True Value", "address": "13599 W Camino Del Sol, Sun City West, AZ 85375", "showroom": false, "notes": "True Value hardware store.", "phone": "(623) 584-7888", "lat": 33.6543661, "lon": -112.3536267}, {"name": "ADR Hardware (True Value)", "address": "237 N Apache Trail, Apache Junction, AZ 85120", "showroom": false, "notes": "True Value hardware store.", "phone": "(480) 982-7461", "lat": 33.417099, "lon": -111.5472739}];
+
+// Live data is fetched from shared CDN data.json (updated by cron every 30 min)
+let DATA_JSON_URL = 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663500405152/KBhOWlAxkLJqFYvM.json';
+const REFRESH_SERVER_URL = 'https://map.inhousekru.com';
+let JT_JOBS = [];
+let GHL_OPPS = [];
+let WEATHER_RISK = {};
+let _mapLoaded = false;
+let _dataLoaded = false;
+let _lastDataHash = '';
+let _refreshInterval = null;
+
+async function fetchLiveData(isRefresh) {
+  const btn = document.getElementById('btn-refresh');
+  const ts = document.getElementById('refresh-timestamp');
+  if (btn) { btn.textContent = '⟳'; btn.style.opacity = '0.5'; }
+  try {
+    const resp = await fetch(DATA_JSON_URL + '?t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const hash = data.generated_at || '';
+    if (hash === _lastDataHash && isRefresh) {
+      // No new data — update timestamp only
+      if (ts) ts.textContent = 'Up to date · ' + fmtNow();
+      if (btn) { btn.textContent = '🔄'; btn.style.opacity = '1'; }
+      return false;
+    }
+    _lastDataHash = hash;
+    JT_JOBS = data.jt_jobs || [];
+    GHL_OPPS = data.ghl_opps || [];
+    WEATHER_RISK = data.weather || {};
+    if (ts) ts.textContent = 'Updated ' + fmtNow();
+    if (btn) { btn.textContent = '🔄'; btn.style.opacity = '1'; }
+    _dataLoaded = true;
+    return true;
+  } catch(e) {
+    console.warn('Live data fetch error:', e);
+    if (btn) { btn.textContent = '🔄'; btn.style.opacity = '1'; }
+    return false;
+  }
+}
+
+function fmtNow() {
+  return new Date().toLocaleTimeString('en-US', {timeZone:'America/Phoenix', hour:'2-digit', minute:'2-digit'});
+}
+
+async function refreshMapData() {
+  const btn = document.getElementById('btn-refresh');
+  const ts = document.getElementById('refresh-timestamp');
+  if (btn) { btn.textContent = '⟳'; btn.style.opacity = '0.5'; btn.disabled = true; }
+  if (ts) ts.textContent = 'Pulling fresh data…';
+  // Step 1: Ask the server to run a live data pull from GHL + JobTread
+  try {
+    const srvResp = await fetch(REFRESH_SERVER_URL + '/refresh', {method:'POST'});
+    const srvData = await srvResp.json();
+    if (srvData.status === 'ok' && srvData.data_url) {
+      DATA_JSON_URL = srvData.data_url;
+    }
+  } catch(e) {
+    console.warn('Refresh server unreachable, fetching cached data:', e);
+  }
+  if (btn) { btn.disabled = false; }
+  // Step 2: Fetch the (now fresh) data.json and update the map
+  const changed = await fetchLiveData(true);
+  if (changed && _mapLoaded) {
+    allMarkers.filter(m => m.source === 'jt' || m.source === 'ghl').forEach(({marker}) => marker.remove());
+    allMarkers.splice(0, allMarkers.length, ...allMarkers.filter(m => m.source !== 'jt' && m.source !== 'ghl'));
+    addJTMarkers();
+    addGHLMarkers();
+    initWeatherRisk();
+    applyWeatherZoneFlash();
+    buildDashboard();
+    searchIndex = buildSearchIndex();
+  }
+}
+
+// Auto-poll every 5 minutes
+function startAutoRefresh() {
+  if (_refreshInterval) clearInterval(_refreshInterval);
+  _refreshInterval = setInterval(() => { refreshMapData(); }, 5 * 60 * 1000);
+}
+
+// Initial data load — fires immediately, then starts polling
+fetchLiveData(false).then(() => {
+  if (_mapLoaded) {
+    addJTMarkers(); addGHLMarkers();
+    initWeatherRisk(); applyWeatherZoneFlash(); buildDashboard();
+    searchIndex = buildSearchIndex();
+  }
+  startAutoRefresh();
+});
+
+// ─── STATUS COLORS ───────────────────────────────────────────────────────────
+
+const JT_STATUS_COLORS = {
+  'active production phase':      '#27ae60',
+  'sold | project intake phase':  '#9b59b6',
+};
+
+function getJTColor(status) {
+  return JT_STATUS_COLORS[(status || '').toLowerCase()] || '#9b59b6';
+}
+
+function getJTCategory(status) {
+  const s = (status || '').toLowerCase();
+  if (s.includes('active')) return 'jt-active';
+  return 'jt-sold';
+}
+
+// GHL stage → category mapping
+// Proposal = bright yellow (#f1c40f) — very distinct from Permitting = red (#e74c3c)
+function getGHLCategory(stageName) {
+  const s = (stageName || '').toLowerCase();
+  if (s.includes('permitting')) return 'ghl-permitting';
+  if (s.includes('proposal')) return 'ghl-proposal';
+  if (s.includes('consultation') || s.includes('consult')) return 'ghl-consult';
+  if (s.includes('appoint') || s.includes('booked')) return 'ghl-appt';
+  if (s.includes('closed') || s.includes('won') || s.includes('lost') || s.includes('opportunity')) return null;
+  return 'ghl-appt';
+}
+
+const GHL_CATEGORY_COLORS = {
+  'ghl-appt':       '#ff6b35',  // Orange
+  'ghl-consult':    '#e91e8c',  // Hot pink
+  'ghl-proposal':   '#f1c40f',  // Bright yellow (very distinct from permitting)
+  'ghl-permitting': '#e74c3c',  // Red (very distinct from proposal)
+};
+
+function getGHLColor(stageName) {
+  return GHL_CATEGORY_COLORS[getGHLCategory(stageName)] || '#ff6b35';
+}
+
+// ─── ZONE POLYGONS ───────────────────────────────────────────────────────────
+
+const ZONES = {"Zone 1": {"color": "#f1c40f", "opacity": 0.2, "coords": [[-112.08177, 33.67295], [-112.07865, 33.67369], [-112.07022, 33.67697], [-112.05652, 33.67862], [-112.0371, 33.67862], [-112.01261, 33.67318], [-112.00604, 33.67066], [-111.99796, 33.66982], [-111.98381, 33.66687], [-111.9732, 33.66603], [-111.96916, 33.66477], [-111.95602, 33.66351], [-111.94743, 33.66099], [-111.91711, 33.66057], [-111.90145, 33.6572], [-111.89943, 33.65636], [-111.89336, 33.64921], [-111.89185, 33.64458], [-111.89134, 33.63953], [-111.88881, 33.63238], [-111.8873, 33.62607], [-111.8873, 33.61303], [-111.88831, 33.6105], [-111.88831, 33.60629], [-111.88578, 33.59661], [-111.88578, 33.58651], [-111.88385, 33.58531], [-111.88317, 33.58399], [-111.88367, 33.58401], [-111.88367, 33.57109], [-111.88269, 33.56945], [-111.88269, 33.56621], [-111.88075, 33.56379], [-111.88075, 33.54517], [-111.88463, 33.5298], [-111.88463, 33.51037], [-111.88366, 33.50551], [-111.88366, 33.47068], [-111.88463, 33.46663], [-111.8856, 33.448], [-111.88859, 33.4399], [-111.88658, 33.4399], [-111.88266, 33.44155], [-111.88447, 33.43666], [-111.8895, 33.43666], [-111.89338, 33.43503], [-111.90115, 33.43341], [-111.94194, 33.43341], [-111.94679, 33.43504], [-111.9565, 33.43666], [-111.96621, 33.4399], [-111.96934, 33.44208], [-111.97133, 33.44595], [-111.97326, 33.44809], [-111.97495, 33.44903], [-111.97689, 33.45448], [-111.9633, 33.44152], [-111.96487, 33.44428], [-111.96718, 33.44557], [-111.96815, 33.448], [-111.97259, 33.45342], [-111.97592, 33.45528], [-111.97884, 33.45528], [-111.98128, 33.4563], [-111.98369, 33.45367], [-111.98369, 33.4519], [-111.98484, 33.45238], [-111.98387, 33.45738], [-112.00574, 33.46061], [-112.02272, 33.46142], [-112.04408, 33.46466], [-112.09608, 33.46466], [-112.1041, 33.46257], [-112.10411, 33.46466], [-112.10539, 33.46466], [-112.1054, 33.46167], [-112.10893, 33.4613], [-112.1054, 33.46168], [-112.1054, 33.46608], [-112.10605, 33.46663], [-112.11091, 33.47716], [-112.11091, 33.49748], [-112.11381, 33.50667], [-112.11521, 33.51952], [-112.11521, 33.52786], [-112.11674, 33.53627], [-112.11674, 33.601], [-112.11771, 33.60424], [-112.11771, 33.61556], [-112.11868, 33.6196], [-112.11868, 33.63011], [-112.11965, 33.63416], [-112.11965, 33.65032], [-112.11731, 33.65694], [-112.11731, 33.66917], [-112.1145, 33.67282], [-112.11187, 33.67389], [-112.11115, 33.67391], [-112.11115, 33.66982], [-112.10971, 33.66892], [-112.09828, 33.66892], [-112.08759, 33.67135], [-112.08468, 33.67135], [-112.08177, 33.67295]]}, "Zone 2A": {"color": "#e67e22", "opacity": 0.2, "coords": [[-111.88076, 33.44314], [-111.87562, 33.44391], [-111.86449, 33.45034], [-111.8582, 33.45708], [-111.85554, 33.45921], [-111.84677, 33.46339], [-111.83803, 33.46501], [-111.80793, 33.46502], [-111.79613, 33.46676], [-111.79142, 33.47068], [-111.79046, 33.47309], [-111.78714, 33.47428], [-111.78268, 33.47797], [-111.77977, 33.47797], [-111.77685, 33.4804], [-111.69043, 33.4804], [-111.68655, 33.47959], [-111.67878, 33.47554], [-111.67878, 33.47311], [-111.67586, 33.47068], [-111.66907, 33.46177], [-111.6681, 33.45934], [-111.66324, 33.45448], [-111.66227, 33.45205], [-111.65644, 33.448], [-111.65451, 33.44559], [-111.64285, 33.44071], [-111.63831, 33.43756], [-111.63335, 33.42879], [-111.63299, 33.41959], [-111.63799, 33.41072], [-111.63896, 33.40667], [-111.64091, 33.40424], [-111.64188, 33.40018], [-111.64188, 33.39451], [-111.64076, 33.39032], [-111.64076, 33.38624], [-111.6391, 33.38001], [-111.6312, 33.36314], [-111.6312, 33.34991], [-111.63314, 33.34342], [-111.63605, 33.34098], [-111.63702, 33.33855], [-111.64188, 33.33368], [-111.64576, 33.33206], [-111.65353, 33.33125], [-111.70311, 33.33043], [-111.72733, 33.32557], [-111.72855, 33.32476], [-111.73367, 33.32309], [-111.73495, 33.32094], [-111.73495, 33.31924], [-111.73801, 33.31583], [-111.74093, 33.30528], [-111.74093, 33.30285], [-111.74404, 33.2945], [-111.74685, 33.29137], [-111.75202, 33.28706], [-111.75452, 33.2858], [-111.76035, 33.2858], [-111.76714, 33.28418], [-111.78074, 33.28337], [-111.78365, 33.28255], [-111.8021, 33.28255], [-111.81924, 33.27999], [-111.82181, 33.27999], [-111.82929, 33.27849], [-111.85066, 33.27849], [-111.85559, 33.28095], [-111.88464, 33.28579], [-111.89246, 33.28905], [-111.90115, 33.28905], [-111.90503, 33.28986], [-111.95941, 33.28986], [-111.9633, 33.28905], [-111.97204, 33.28905], [-111.97142, 33.2877], [-111.97205, 33.28905], [-111.96834, 33.2895], [-111.97403, 33.29426], [-111.97491, 33.2937], [-111.97071, 33.29645], [-111.97205, 33.30285], [-111.97399, 33.30609], [-111.97399, 33.32719], [-111.97222, 33.33533], [-111.97222, 33.34712], [-111.96914, 33.35971], [-111.96914, 33.39613], [-111.97108, 33.40179], [-111.97302, 33.40343], [-111.98176, 33.41882], [-111.9837, 33.42045], [-111.98387, 33.43549], [-111.98484, 33.43792], [-111.98484, 33.45237], [-111.98368, 33.45189], [-111.98368, 33.45367], [-111.98128, 33.45629], [-111.97884, 33.45527], [-111.97592, 33.45527], [-111.9726, 33.45341], [-111.96816, 33.44799], [-111.96719, 33.44556], [-111.96488, 33.44427], [-111.96334, 33.44157], [-111.9769, 33.45449], [-111.97496, 33.44902], [-111.97326, 33.44808], [-111.97134, 33.44594], [-111.96935, 33.44207], [-111.96622, 33.43989], [-111.9565, 33.43665], [-111.94679, 33.43503], [-111.94194, 33.4334], [-111.90115, 33.4334], [-111.89338, 33.43502], [-111.8895, 33.43665], [-111.88447, 33.43665], [-111.88265, 33.44156], [-111.88076, 33.44314]]}, "Zone 2B": {"color": "#d35400", "opacity": 0.2, "coords": [[-111.71113, 33.06399], [-111.71107, 33.069], [-111.71607, 33.06962], [-111.71627, 33.07469], [-111.72132, 33.07554], [-111.72204, 33.08077], [-111.72729, 33.08178], [-111.72882, 33.08717], [-111.73464, 33.0883], [-111.73733, 33.09376], [-111.74344, 33.09426], [-111.74731, 33.10014], [-111.75715, 33.10331], [-111.76306, 33.10898], [-111.77203, 33.11063], [-111.77986, 33.11727], [-111.78867, 33.11813], [-111.79533, 33.12441], [-111.8037, 33.12593], [-111.80938, 33.13188], [-111.81717, 33.13221], [-111.82231, 33.13743], [-111.82954, 33.138], [-111.83272, 33.14155], [-111.83372, 33.14363], [-111.84088, 33.14497], [-111.84373, 33.14792], [-111.8482, 33.15094], [-111.85095, 33.15509], [-111.86382, 33.16101], [-111.86832, 33.16604], [-111.87608, 33.17091], [-111.88094, 33.17498], [-111.90237, 33.18746], [-111.90715, 33.19246], [-111.91048, 33.19452], [-111.91536, 33.2002], [-111.91954, 33.2038], [-111.92255, 33.20805], [-111.93481, 33.21727], [-111.93795, 33.22385], [-111.94253, 33.23023], [-111.94555, 33.2334], [-111.9554, 33.24911], [-111.9575, 33.25091], [-111.95848, 33.25664], [-111.95848, 33.2615], [-111.96036, 33.26465], [-111.96445, 33.26807], [-111.96445, 33.27543], [-111.96719, 33.27848], [-111.97202, 33.28904], [-111.9633, 33.28904], [-111.95941, 33.28985], [-111.90503, 33.28985], [-111.90115, 33.28904], [-111.89246, 33.28904], [-111.88464, 33.28578], [-111.85559, 33.28094], [-111.85066, 33.27848], [-111.82929, 33.27848], [-111.82181, 33.27998], [-111.81924, 33.27998], [-111.8021, 33.28254], [-111.78365, 33.28254], [-111.78074, 33.28336], [-111.76714, 33.28417], [-111.76035, 33.28579], [-111.75452, 33.28579], [-111.75201, 33.28705], [-111.74685, 33.29136], [-111.74404, 33.2945], [-111.74092, 33.30285], [-111.74092, 33.30528], [-111.738, 33.31583], [-111.73494, 33.31924], [-111.73494, 33.32094], [-111.73366, 33.32308], [-111.72854, 33.32475], [-111.72733, 33.32556], [-111.70311, 33.33042], [-111.65353, 33.33124], [-111.64576, 33.33205], [-111.64187, 33.33367], [-111.63701, 33.33854], [-111.63604, 33.34097], [-111.63313, 33.34342], [-111.63119, 33.34991], [-111.63119, 33.36314], [-111.63909, 33.38001], [-111.64075, 33.38624], [-111.64075, 33.39032], [-111.64187, 33.39451], [-111.64187, 33.40018], [-111.6409, 33.40424], [-111.63895, 33.40667], [-111.63798, 33.41072], [-111.63298, 33.41958], [-111.63334, 33.42879], [-111.63831, 33.43757], [-111.64285, 33.44072], [-111.6545, 33.4456], [-111.65643, 33.44801], [-111.66226, 33.45206], [-111.66323, 33.45449], [-111.66809, 33.45935], [-111.66906, 33.46178], [-111.67585, 33.47069], [-111.67877, 33.47311], [-111.67877, 33.47555], [-111.68655, 33.4796], [-111.69043, 33.48041], [-111.77685, 33.48041], [-111.77977, 33.47798], [-111.78268, 33.47798], [-111.78715, 33.47429], [-111.79046, 33.4731], [-111.79143, 33.47069], [-111.79613, 33.46677], [-111.80793, 33.46503], [-111.83803, 33.46502], [-111.84677, 33.4634], [-111.85554, 33.45922], [-111.8582, 33.45709], [-111.86449, 33.45034], [-111.87562, 33.44392], [-111.88062, 33.44321], [-111.88266, 33.44156], [-111.88658, 33.43991], [-111.88858, 33.43991], [-111.88559, 33.448], [-111.88462, 33.46663], [-111.88365, 33.47068], [-111.88365, 33.50551], [-111.88462, 33.51037], [-111.88462, 33.5298], [-111.88074, 33.54517], [-111.88074, 33.56379], [-111.88268, 33.56621], [-111.88268, 33.56945], [-111.88366, 33.57109], [-111.88366, 33.584], [-111.88316, 33.58399], [-111.88384, 33.5853], [-111.83424, 33.58525], [-111.79483, 33.5802], [-111.78422, 33.57978], [-111.72459, 33.57978], [-111.70943, 33.57809], [-111.70741, 33.57725], [-111.70741, 33.57515], [-111.70438, 33.57178], [-111.70034, 33.56925], [-111.69478, 33.56925], [-111.69349, 33.5697], [-111.68835, 33.56621], [-111.68214, 33.56858], [-111.67682, 33.56575], [-111.67173, 33.56848], [-111.66781, 33.56491], [-111.66618, 33.56578], [-111.66009, 33.56675], [-111.6543, 33.56286], [-111.64918, 33.56472], [-111.64368, 33.56177], [-111.63929, 33.56488], [-111.6353, 33.56176], [-111.63186, 33.5654], [-111.62802, 33.56219], [-111.62774, 33.5625], [-111.61553, 33.55823], [-111.6095, 33.55166], [-111.60259, 33.55063], [-111.59852, 33.54548], [-111.5919, 33.54548], [-111.58762, 33.54053], [-111.58148, 33.54103], [-111.57806, 33.53659], [-111.57289, 33.53769], [-111.56939, 33.53341], [-111.56405, 33.5349], [-111.56028, 33.53082], [-111.55527, 33.53282], [-111.55164, 33.52894], [-111.54715, 33.5313], [-111.54404, 33.52729], [-111.53968, 33.52982], [-111.53699, 33.5256], [-111.53268, 33.52814], [-111.53015, 33.52382], [-111.52585, 33.52639], [-111.52361, 33.52189], [-111.51939, 33.52461], [-111.51729, 33.52002], [-111.51307, 33.52297], [-111.51123, 33.51808], [-111.50709, 33.52126], [-111.50525, 33.51637], [-111.50301, 33.51809], [-111.50301, 33.06356], [-111.70662, 33.06356], [-111.71113, 33.06399]], "label_anchor": [-111.72, 33.18]}, "Zone 3A": {"color": "#27ae60", "opacity": 0.2, "coords": [[-111.64525, 33.63617], [-111.64373, 33.62775], [-111.64373, 33.61176], [-111.64497, 33.60265], [-111.63984, 33.60243], [-111.64143, 33.59749], [-111.63624, 33.59727], [-111.6379, 33.59234], [-111.63285, 33.59164], [-111.63498, 33.58704], [-111.63002, 33.58566], [-111.63255, 33.58118], [-111.62767, 33.57965], [-111.63025, 33.57524], [-111.62592, 33.57274], [-111.6289, 33.5687], [-111.62426, 33.5665], [-111.62802, 33.56221], [-111.63186, 33.56541], [-111.6353, 33.56177], [-111.63928, 33.56489], [-111.64368, 33.56179], [-111.64918, 33.56473], [-111.6543, 33.56288], [-111.66008, 33.56676], [-111.66618, 33.56579], [-111.6678, 33.56492], [-111.67173, 33.56849], [-111.67682, 33.56576], [-111.68214, 33.56859], [-111.68834, 33.56622], [-111.69349, 33.56971], [-111.69478, 33.56926], [-111.70034, 33.56926], [-111.70437, 33.57179], [-111.7074, 33.57515], [-111.7074, 33.57726], [-111.70943, 33.5781], [-111.72459, 33.57979], [-111.78422, 33.57979], [-111.79483, 33.58021], [-111.83424, 33.58526], [-111.88384, 33.58531], [-111.88577, 33.58652], [-111.88577, 33.59661], [-111.8883, 33.60629], [-111.8883, 33.6105], [-111.88729, 33.61303], [-111.88729, 33.62607], [-111.8888, 33.63238], [-111.89133, 33.63953], [-111.89184, 33.64458], [-111.89335, 33.64921], [-111.89942, 33.65637], [-111.90145, 33.65721], [-111.91711, 33.66058], [-111.94743, 33.661], [-111.95602, 33.66352], [-111.96916, 33.66478], [-111.9732, 33.66604], [-111.98381, 33.66688], [-111.99796, 33.66983], [-112.00604, 33.67067], [-112.01261, 33.67319], [-112.0371, 33.67863], [-112.05652, 33.67863], [-112.07022, 33.67698], [-112.07866, 33.6737], [-112.08177, 33.67296], [-112.08468, 33.67136], [-112.08759, 33.67136], [-112.09828, 33.66893], [-112.10971, 33.66893], [-112.11114, 33.66983], [-112.11115, 33.67392], [-112.11412, 33.6731], [-112.11615, 33.67083], [-112.11615, 33.70442], [-112.11754, 33.71599], [-112.12092, 33.72367], [-112.12549, 33.7413], [-112.12673, 33.74406], [-112.12777, 33.76969], [-112.13277, 33.76963], [-112.13203, 33.76992], [-112.13301, 33.7758], [-112.13301, 33.79415], [-112.13592, 33.80051], [-112.1323, 33.80052], [-112.13203, 33.80494], [-112.1363, 33.80495], [-112.13628, 33.80549], [-112.13629, 33.80495], [-112.08306, 33.80495], [-112.05434, 33.8032], [-112.03122, 33.80087], [-111.94016, 33.80087], [-111.93736, 33.80029], [-111.93434, 33.798], [-111.93226, 33.79758], [-111.93024, 33.79548], [-111.92822, 33.78833], [-111.9267, 33.77867], [-111.92676, 33.74381], [-111.90513, 33.74439], [-111.89883, 33.74614], [-111.89559, 33.74799], [-111.87528, 33.75121], [-111.87236, 33.75209], [-111.86801, 33.75196], [-111.83578, 33.7473], [-111.82037, 33.74206], [-111.81477, 33.73857], [-111.81197, 33.73565], [-111.81054, 33.73162], [-111.81054, 33.72142], [-111.81197, 33.71468], [-111.81617, 33.70827], [-111.81976, 33.70439], [-111.82109, 33.69966], [-111.82948, 33.68905], [-111.82878, 33.68029], [-111.82668, 33.67913], [-111.81827, 33.67738], [-111.81471, 33.67468], [-111.80443, 33.67067], [-111.79432, 33.6652], [-111.78599, 33.65959], [-111.77134, 33.65756], [-111.76644, 33.65581], [-111.75453, 33.65348], [-111.74752, 33.65231], [-111.73135, 33.65231], [-111.72517, 33.65087], [-111.71114, 33.65166], [-111.7083, 33.65231], [-111.68588, 33.65231], [-111.67327, 33.64998], [-111.65646, 33.6494], [-111.65296, 33.64823], [-111.65156, 33.64648], [-111.65156, 33.645], [-111.6503, 33.64417], [-111.64525, 33.63617]]}, "Zone 3B": {"color": "#1e8449", "opacity": 0.2, "coords": [[-111.81056, 33.73207], [-111.81196, 33.73566], [-111.81476, 33.73858], [-111.82037, 33.74207], [-111.83578, 33.74731], [-111.86801, 33.75197], [-111.87236, 33.7521], [-111.87528, 33.75121], [-111.89559, 33.748], [-111.89883, 33.74615], [-111.90513, 33.7444], [-111.92675, 33.74382], [-111.92669, 33.77867], [-111.92821, 33.78833], [-111.93023, 33.79549], [-111.93225, 33.79759], [-111.93434, 33.79801], [-111.93736, 33.8003], [-111.94016, 33.80088], [-112.03122, 33.80088], [-112.05434, 33.80321], [-112.08306, 33.80496], [-112.13628, 33.80496], [-112.1356, 33.82718], [-112.13786, 33.82986], [-112.13883, 33.83987], [-112.14751, 33.85092], [-112.1496, 33.85499], [-112.15382, 33.8672], [-112.15452, 33.87476], [-112.14902, 33.88992], [-112.14951, 33.89115], [-112.15385, 33.89115], [-112.1526, 33.89615], [-112.15775, 33.89615], [-112.1565, 33.90115], [-112.16166, 33.90115], [-112.16035, 33.90615], [-112.16558, 33.90607], [-112.16361, 33.91115], [-112.16944, 33.91041], [-112.16889, 33.91179], [-112.1685, 33.91256], [-111.50301, 33.91256], [-111.50301, 33.5181], [-111.50524, 33.51639], [-111.50709, 33.52127], [-111.51122, 33.5181], [-111.51307, 33.52298], [-111.51729, 33.52003], [-111.51939, 33.52462], [-111.52361, 33.5219], [-111.52584, 33.5264], [-111.53014, 33.52384], [-111.53268, 33.52815], [-111.53698, 33.52562], [-111.53968, 33.52983], [-111.54404, 33.52731], [-111.54715, 33.53131], [-111.55164, 33.52895], [-111.55527, 33.53283], [-111.56027, 33.53083], [-111.56404, 33.53491], [-111.56938, 33.53343], [-111.57288, 33.5377], [-111.57805, 33.5366], [-111.58147, 33.54104], [-111.58761, 33.54055], [-111.5919, 33.54549], [-111.59851, 33.54549], [-111.60259, 33.55064], [-111.6095, 33.55167], [-111.61552, 33.55824], [-111.62773, 33.56251], [-111.62425, 33.5665], [-111.62889, 33.5687], [-111.62591, 33.57274], [-111.63023, 33.57524], [-111.62767, 33.57965], [-111.63254, 33.58118], [-111.63001, 33.58567], [-111.63497, 33.58705], [-111.63284, 33.59164], [-111.63788, 33.59234], [-111.63623, 33.59728], [-111.64142, 33.5975], [-111.63983, 33.60244], [-111.64496, 33.60266], [-111.64372, 33.61176], [-111.64372, 33.62775], [-111.64524, 33.63617], [-111.65029, 33.64418], [-111.65155, 33.64501], [-111.65155, 33.64648], [-111.65296, 33.64824], [-111.65646, 33.64941], [-111.67327, 33.64999], [-111.68588, 33.65232], [-111.7083, 33.65232], [-111.71115, 33.65167], [-111.72516, 33.65088], [-111.73135, 33.65232], [-111.74752, 33.65232], [-111.75453, 33.65349], [-111.76644, 33.65582], [-111.77134, 33.65757], [-111.78599, 33.6596], [-111.79432, 33.66521], [-111.80443, 33.67068], [-111.81471, 33.67469], [-111.81827, 33.67739], [-111.82668, 33.67914], [-111.82877, 33.6803], [-111.82947, 33.68905], [-111.82108, 33.69965], [-111.81975, 33.70438], [-111.81616, 33.70826], [-111.81196, 33.71468], [-111.81053, 33.72142], [-111.81056, 33.73207]]}, "Zone 4A": {"color": "#16a085", "opacity": 0.2, "coords": [[-112.12104, 33.72406], [-112.11754, 33.71599], [-112.11616, 33.70442], [-112.11616, 33.67082], [-112.11732, 33.66917], [-112.11732, 33.65694], [-112.11966, 33.65032], [-112.11966, 33.63416], [-112.11869, 33.63011], [-112.11869, 33.6196], [-112.11772, 33.61556], [-112.11772, 33.60424], [-112.11675, 33.601], [-112.11675, 33.53627], [-112.11522, 33.52786], [-112.11522, 33.51952], [-112.11382, 33.50667], [-112.11092, 33.49748], [-112.11092, 33.47716], [-112.10606, 33.46663], [-112.10541, 33.46608], [-112.10541, 33.46169], [-112.12221, 33.45992], [-112.18197, 33.4598], [-112.18683, 33.45899], [-112.1872, 33.45364], [-112.19329, 33.45268], [-112.19362, 33.45008], [-112.19265, 33.45778], [-112.19937, 33.457], [-112.20819, 33.45413], [-112.2282, 33.45413], [-112.2385, 33.45232], [-112.30574, 33.45233], [-112.3107, 33.4528], [-112.38784, 33.45332], [-112.39463, 33.45413], [-112.41794, 33.45413], [-112.4247, 33.45464], [-112.42841, 33.45642], [-112.43248, 33.4612], [-112.43355, 33.46132], [-112.43281, 33.46162], [-112.43436, 33.46389], [-112.43473, 33.46633], [-112.43306, 33.46772], [-112.43473, 33.47188], [-112.43456, 33.47582], [-112.43204, 33.48273], [-112.42612, 33.49444], [-112.42612, 33.511], [-112.42813, 33.52287], [-112.43011, 33.53028], [-112.43098, 33.53611], [-112.43098, 33.53971], [-112.43261, 33.54946], [-112.43263, 33.57572], [-112.43331, 33.57981], [-112.43333, 33.5886], [-112.43306, 33.61502], [-112.43209, 33.61826], [-112.43209, 33.62927], [-112.43049, 33.63638], [-112.42987, 33.64507], [-112.42666, 33.65442], [-112.41849, 33.66698], [-112.41458, 33.6714], [-112.41354, 33.67405], [-112.41049, 33.67644], [-112.40902, 33.6795], [-112.40393, 33.68212], [-112.40005, 33.68535], [-112.387, 33.69221], [-112.38139, 33.69396], [-112.37725, 33.69407], [-112.37092, 33.69666], [-112.36606, 33.69666], [-112.35926, 33.69908], [-112.35614, 33.69925], [-112.34901, 33.69846], [-112.34418, 33.70007], [-112.33774, 33.70658], [-112.32916, 33.71282], [-112.32333, 33.71605], [-112.32042, 33.71928], [-112.31557, 33.7217], [-112.31459, 33.72413], [-112.30877, 33.7322], [-112.30683, 33.73382], [-112.30592, 33.73988], [-112.30317, 33.74263], [-112.30234, 33.74537], [-112.30197, 33.754], [-112.30003, 33.76046], [-112.29809, 33.76288], [-112.28741, 33.76934], [-112.27478, 33.77257], [-112.26507, 33.77338], [-112.26022, 33.77499], [-112.25536, 33.77499], [-112.24565, 33.77822], [-112.24363, 33.77956], [-112.22456, 33.78629], [-112.21263, 33.78629], [-112.20486, 33.78549], [-112.20195, 33.78387], [-112.19613, 33.78387], [-112.19473, 33.78348], [-112.18253, 33.77338], [-112.17476, 33.77015], [-112.12778, 33.76968], [-112.12674, 33.74406], [-112.12549, 33.7413], [-112.12104, 33.72406]]}, "Zone 4B": {"color": "#0e6655", "opacity": 0.2, "coords": [[-112.40879, 33.67969], [-112.4105, 33.67645], [-112.41354, 33.67405], [-112.41458, 33.67141], [-112.4185, 33.66698], [-112.42667, 33.65442], [-112.42988, 33.64507], [-112.4305, 33.63638], [-112.4321, 33.62928], [-112.4321, 33.61826], [-112.43307, 33.61502], [-112.43334, 33.5886], [-112.43332, 33.57981], [-112.43264, 33.57571], [-112.43262, 33.54946], [-112.43099, 33.53971], [-112.43099, 33.53611], [-112.43012, 33.53028], [-112.42814, 33.52287], [-112.42613, 33.511], [-112.42613, 33.49444], [-112.43205, 33.48274], [-112.43457, 33.47582], [-112.43474, 33.47188], [-112.43307, 33.46772], [-112.43474, 33.46634], [-112.43471, 33.46529], [-112.43416, 33.46346], [-112.43283, 33.46162], [-112.43501, 33.4611], [-112.44971, 33.4611], [-112.45872, 33.46466], [-112.48426, 33.46609], [-112.52321, 33.46609], [-112.53666, 33.46365], [-112.53884, 33.4653], [-112.54011, 33.46806], [-112.54574, 33.46692], [-112.5487, 33.47142], [-112.55378, 33.47039], [-112.55609, 33.47503], [-112.56195, 33.47399], [-112.56549, 33.47893], [-112.57059, 33.4781], [-112.5721, 33.48288], [-112.57694, 33.48166], [-112.57741, 33.48403], [-112.57858, 33.48641], [-112.5835, 33.48518], [-112.58522, 33.4899], [-112.5902, 33.48906], [-112.5969, 33.5313], [-112.59119, 33.49401], [-112.59615, 33.49342], [-112.59691, 33.49836], [-112.60182, 33.49739], [-112.60258, 33.50234], [-112.60748, 33.50132], [-112.60824, 33.50627], [-112.61314, 33.50525], [-112.6139, 33.5102], [-112.6188, 33.50917], [-112.61956, 33.51412], [-112.62446, 33.5131], [-112.62522, 33.51805], [-112.63012, 33.51703], [-112.63088, 33.52198], [-112.63578, 33.52093], [-112.6365, 33.5259], [-112.6414, 33.52468], [-112.6419, 33.5297], [-112.64677, 33.52823], [-112.64727, 33.53333], [-112.65213, 33.53169], [-112.65244, 33.53687], [-112.65736, 33.53505], [-112.6576, 33.54031], [-112.66252, 33.53844], [-112.66276, 33.54369], [-112.66768, 33.54182], [-112.66793, 33.54708], [-112.67041, 33.5461], [-112.67041, 33.91256], [-112.16851, 33.91256], [-112.16944, 33.9104], [-112.16363, 33.91114], [-112.16558, 33.90606], [-112.16037, 33.90614], [-112.16166, 33.90114], [-112.15651, 33.90114], [-112.15776, 33.89614], [-112.15261, 33.89614], [-112.15386, 33.89115], [-112.14952, 33.89114], [-112.14903, 33.88992], [-112.15453, 33.87476], [-112.15383, 33.8672], [-112.14961, 33.85499], [-112.14752, 33.85092], [-112.13884, 33.83987], [-112.13787, 33.82986], [-112.13561, 33.82718], [-112.13631, 33.80495], [-112.13204, 33.80493], [-112.13231, 33.80053], [-112.13593, 33.80051], [-112.13302, 33.79415], [-112.13302, 33.7758], [-112.13204, 33.76993], [-112.17476, 33.77016], [-112.18252, 33.77339], [-112.19473, 33.78349], [-112.19613, 33.78388], [-112.20195, 33.78388], [-112.20486, 33.7855], [-112.21263, 33.7863], [-112.22456, 33.7863], [-112.24364, 33.77957], [-112.24565, 33.77823], [-112.25536, 33.775], [-112.26022, 33.775], [-112.26507, 33.77339], [-112.27478, 33.77258], [-112.28741, 33.76935], [-112.2981, 33.76289], [-112.30004, 33.76047], [-112.30198, 33.754], [-112.30235, 33.74538], [-112.30317, 33.74263], [-112.30593, 33.73988], [-112.30684, 33.73383], [-112.30878, 33.73221], [-112.3146, 33.72414], [-112.31558, 33.72171], [-112.32043, 33.71929], [-112.32334, 33.71606], [-112.32917, 33.71283], [-112.33774, 33.70658], [-112.34419, 33.70008], [-112.34901, 33.69847], [-112.35614, 33.69926], [-112.35926, 33.69909], [-112.36606, 33.69667], [-112.37092, 33.69667], [-112.37725, 33.69408], [-112.38139, 33.69397], [-112.387, 33.69222], [-112.40005, 33.68536], [-112.40394, 33.68213], [-112.40879, 33.67969]], "label_anchor": [-112.58, 33.68]}, "Zone 5A": {"color": "#8e44ad", "opacity": 0.2, "coords": [[-111.98484, 33.45251], [-111.98485, 33.43792], [-111.98388, 33.43549], [-111.98371, 33.42045], [-111.98177, 33.41881], [-111.97303, 33.40343], [-111.97109, 33.40178], [-111.96915, 33.39613], [-111.96915, 33.35971], [-111.97223, 33.34712], [-111.97223, 33.33533], [-111.974, 33.32719], [-111.974, 33.30609], [-111.97206, 33.30285], [-111.97072, 33.29645], [-111.97491, 33.29369], [-111.99645, 33.29173], [-111.9897, 33.29275], [-112.00038, 33.29113], [-112.013, 33.29031], [-112.07321, 33.29031], [-112.08292, 33.28868], [-112.08778, 33.28706], [-112.09751, 33.28706], [-112.10137, 33.28545], [-112.11594, 33.28382], [-112.11326, 33.28412], [-112.12876, 33.28869], [-112.13652, 33.28882], [-112.14811, 33.29255], [-112.15759, 33.29687], [-112.16822, 33.30883], [-112.17122, 33.31143], [-112.18221, 33.32444], [-112.18197, 33.32359], [-112.1878, 33.34441], [-112.19169, 33.3536], [-112.19363, 33.35604], [-112.19363, 33.37794], [-112.1946, 33.38118], [-112.1946, 33.38929], [-112.19557, 33.39172], [-112.19557, 33.41361], [-112.19362, 33.41972], [-112.19362, 33.44936], [-112.19265, 33.45276], [-112.18719, 33.45363], [-112.18682, 33.45898], [-112.18197, 33.45979], [-112.12221, 33.45991], [-112.1054, 33.46166], [-112.10538, 33.46465], [-112.10412, 33.46465], [-112.1041, 33.46256], [-112.09608, 33.46465], [-112.04408, 33.46465], [-112.02272, 33.46141], [-112.00574, 33.4606], [-111.98388, 33.45737], [-111.98484, 33.45251]]}, "Zone 5B": {"color": "#6c3483", "opacity": 0.2, "coords": [[-111.71608, 33.06961], [-111.71108, 33.06899], [-111.71114, 33.06398], [-111.70672, 33.06356], [-112.57744, 33.06356], [-112.59611, 33.07323], [-112.61925, 33.08669], [-112.62529, 33.08953], [-112.6431, 33.09251], [-112.65162, 33.09471], [-112.67041, 33.09758], [-112.67041, 33.54609], [-112.66793, 33.54707], [-112.66769, 33.54181], [-112.66277, 33.54368], [-112.66253, 33.53843], [-112.65761, 33.54029], [-112.65736, 33.53504], [-112.65245, 33.53685], [-112.65214, 33.53168], [-112.64728, 33.53332], [-112.64677, 33.52822], [-112.64191, 33.52969], [-112.6414, 33.52467], [-112.63651, 33.52589], [-112.63578, 33.52093], [-112.63089, 33.52197], [-112.63013, 33.51702], [-112.62523, 33.51804], [-112.62447, 33.51309], [-112.61957, 33.51411], [-112.61881, 33.50917], [-112.61391, 33.51018], [-112.61315, 33.50524], [-112.60825, 33.50626], [-112.60749, 33.50131], [-112.60259, 33.50233], [-112.60183, 33.49738], [-112.59692, 33.49835], [-112.59616, 33.49342], [-112.59118, 33.494], [-112.5902, 33.48905], [-112.58523, 33.48989], [-112.5835, 33.48517], [-112.57859, 33.4864], [-112.57742, 33.48403], [-112.57695, 33.48166], [-112.5721, 33.48287], [-112.57059, 33.47809], [-112.56549, 33.47892], [-112.56196, 33.47398], [-112.5561, 33.47501], [-112.55378, 33.47038], [-112.5487, 33.47141], [-112.54574, 33.46691], [-112.54011, 33.46804], [-112.53885, 33.46529], [-112.53666, 33.46364], [-112.52321, 33.46608], [-112.48426, 33.46608], [-112.45872, 33.46465], [-112.44971, 33.46109], [-112.43249, 33.46119], [-112.42878, 33.45671], [-112.4247, 33.45463], [-112.41794, 33.45412], [-112.39463, 33.45412], [-112.38784, 33.45331], [-112.3107, 33.45279], [-112.30574, 33.45232], [-112.2385, 33.45231], [-112.2282, 33.45412], [-112.20819, 33.45412], [-112.19937, 33.45699], [-112.19266, 33.45777], [-112.19363, 33.45008], [-112.19328, 33.45267], [-112.19266, 33.45276], [-112.19363, 33.44936], [-112.19363, 33.41972], [-112.19558, 33.41361], [-112.19558, 33.39172], [-112.19461, 33.38929], [-112.19461, 33.38118], [-112.19364, 33.37794], [-112.19364, 33.35604], [-112.1917, 33.35359], [-112.18781, 33.34441], [-112.18198, 33.32358], [-112.18219, 33.3244], [-112.17123, 33.31143], [-112.16822, 33.30882], [-112.15759, 33.29686], [-112.14811, 33.29254], [-112.13652, 33.28881], [-112.12876, 33.28868], [-112.11331, 33.28412], [-112.11594, 33.28381], [-112.10137, 33.28544], [-112.09751, 33.28705], [-112.08778, 33.28705], [-112.08292, 33.28867], [-112.07321, 33.2903], [-112.013, 33.2903], [-111.97513, 33.29355], [-111.97403, 33.29425], [-111.96836, 33.28951], [-111.97206, 33.28905], [-111.9672, 33.27847], [-111.96446, 33.27543], [-111.96446, 33.26806], [-111.96037, 33.26464], [-111.95849, 33.2615], [-111.95849, 33.25664], [-111.95751, 33.25091], [-111.9554, 33.24911], [-111.94556, 33.2334], [-111.94254, 33.23022], [-111.93796, 33.22384], [-111.93481, 33.21726], [-111.92256, 33.20804], [-111.91955, 33.20379], [-111.91537, 33.2002], [-111.91049, 33.19451], [-111.90716, 33.19245], [-111.90238, 33.18745], [-111.88095, 33.17497], [-111.87609, 33.1709], [-111.86833, 33.16603], [-111.86382, 33.16101], [-111.85095, 33.15508], [-111.8482, 33.15093], [-111.84374, 33.14791], [-111.84089, 33.14496], [-111.83372, 33.14363], [-111.83273, 33.14155], [-111.82955, 33.13799], [-111.82232, 33.13742], [-111.81718, 33.1322], [-111.80939, 33.13187], [-111.8037, 33.12592], [-111.79533, 33.1244], [-111.78868, 33.11812], [-111.77987, 33.11726], [-111.77203, 33.11062], [-111.76307, 33.10897], [-111.75715, 33.1033], [-111.74732, 33.10013], [-111.74345, 33.09425], [-111.73734, 33.09376], [-111.73464, 33.08829], [-111.72883, 33.08717], [-111.72729, 33.08178], [-111.72205, 33.08076], [-111.72133, 33.07553], [-111.71628, 33.07468], [-111.71608, 33.06961]]}};
+
+// ─── ZONE UTILITIES ──────────────────────────────────────────────────────────
+
+function pointInPolygon(point, polygon) {
+  const [x, y] = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function getZoneForCoords(lng, lat) {
+  for (const [zoneName, zone] of Object.entries(ZONES)) {
+    if (pointInPolygon([lng, lat], zone.coords)) return zoneName;
+  }
+  return 'Outside Service Area';
+}
+
+// ─── ZONE FILTER ─────────────────────────────────────────────────────────────
+
+const ZONE_CHIP_MAP = {
+  'Zone 1': 'zonechip-1',
+  'Zone 2A': 'zonechip-2a',
+  'Zone 2B': 'zonechip-2b',
+  'Zone 3A': 'zonechip-3a',
+  'Zone 3B': 'zonechip-3b',
+  'Zone 4A': 'zonechip-4a',
+  'Zone 4B': 'zonechip-4b',
+  'Zone 5A': 'zonechip-5a',
+  'Zone 5B': 'zonechip-5b',
+};
+
+const activeZones = new Set(Object.keys(ZONE_CHIP_MAP));
+activeZones.add('Outside Service Area');
+
+function toggleZoneChip(zoneName) {
+  const chipId = ZONE_CHIP_MAP[zoneName];
+  if (!chipId) return;
+  const chip = document.getElementById(chipId);
+  if (activeZones.has(zoneName)) {
+    activeZones.delete(zoneName);
+    chip.classList.remove('active');
+    chip.classList.add('inactive');
+  } else {
+    activeZones.add(zoneName);
+    chip.classList.add('active');
+    chip.classList.remove('inactive');
+  }
+  applyFilters();
+}
+
+// ─── GEOCODE FOR SEARCH ───────────────────────────────────────────────────────
+
+async function geocodeAddress(address) {
+  const token = mapboxgl.accessToken;
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${token}&country=US&bbox=-113.5,32.5,-110.5,34.5`;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (data.features && data.features.length > 0) return data.features[0].center;
+  return null;
+}
+
+// ─── SEARCH BOX ──────────────────────────────────────────────────────────────
+
+let searchMarker = null;
+const searchBox = document.getElementById('search-box');
+const autocompleteList = document.getElementById('autocomplete-list');
+let autocompleteTimeout = null;
+let selectedIdx = -1;
+let autocompleteResults = [];
+
+// Build a flat searchable index of all mapped items
+function buildSearchIndex() {
+  const idx = [];
+  // Suppliers
+  const supplierSets = [
+    {key:'siteone',stores:typeof SITEONE_STORES!=='undefined'?SITEONE_STORES:[]},
+    {key:'rock',stores:typeof ROCK_STORES!=='undefined'?ROCK_STORES:[]},
+    {key:'tile',stores:typeof TILE_STORES!=='undefined'?TILE_STORES:[]},
+    {key:'hardscape',stores:typeof HARDSCAPE_STORES!=='undefined'?HARDSCAPE_STORES:[]},
+    {key:'floordecor',stores:typeof FLOOR_DECOR_STORES!=='undefined'?FLOOR_DECOR_STORES:[]},
+    {key:'horizon',stores:typeof HORIZON_STORES!=='undefined'?HORIZON_STORES:[]},
+    {key:'bbq',stores:typeof BBQ_STORES!=='undefined'?BBQ_STORES:[]},
+    {key:'other',stores:typeof OTHER_STORES!=='undefined'?OTHER_STORES:[]},
+    {key:'nursery',stores:typeof NURSERY_STORES!=='undefined'?NURSERY_STORES:[]},
+    {key:'plumbing',stores:typeof PLUMBING_STORES!=='undefined'?PLUMBING_STORES:[]},
+    {key:'misc',stores:typeof MISC_STORES!=='undefined'?MISC_STORES:[]},
+  ];
+  supplierSets.forEach(({key, stores}) => {
+    stores.forEach(s => {
+      idx.push({
+        type: 'supplier', layer: key,
+        name: s.name, address: s.address || '',
+        lat: s.lat || s.latitude, lng: s.lng || s.lon || s.longitude,
+        notes: s.notes || ''
+      });
+    });
+  });
+  // JobTread jobs
+  if (typeof JT_JOBS !== 'undefined') {
+    JT_JOBS.forEach(j => {
+      const jlng = j.lon !== undefined ? j.lon : j.lng;
+      if (j.lat && jlng) idx.push({
+        type: 'job', layer: 'jobtread',
+        name: j.name, address: j.address || (j.location && j.location.address) || '',
+        lat: j.lat, lng: jlng,
+        notes: j.custom_job_status || j.status || ''
+      });
+    });
+  }
+  // GHL opportunities
+  if (typeof GHL_OPPS !== 'undefined') {
+    GHL_OPPS.forEach(o => {
+      const olng = o.lon !== undefined ? o.lon : o.lng;
+      if (o.lat && olng) idx.push({
+        type: 'ghl', layer: 'ghl',
+        name: o.name, address: o.full_address || o.address || '',
+        lat: o.lat, lng: olng,
+        notes: o.stage_name || ''
+      });
+    });
+  }
+  return idx;
+}
+
+let searchIndex = [];
+window.addEventListener('load', () => { setTimeout(() => { searchIndex = buildSearchIndex(); }, 1500); });
+
+function searchMappedItems(query) {
+  const q = query.toLowerCase();
+  return searchIndex.filter(item =>
+    item.name.toLowerCase().includes(q) ||
+    (item.address && item.address.toLowerCase().includes(q))
+  ).slice(0, 5);
+}
+
+const LAYER_ICONS = {
+  supplier: '🏪', jobtread: '🔨', ghl: '📋'
+};
+
+searchBox.addEventListener('input', () => {
+  const val = searchBox.value.trim();
+  document.getElementById('search-clear').style.display = val ? 'block' : 'none';
+  clearTimeout(autocompleteTimeout);
+  if (val.length < 2) { autocompleteList.style.display = 'none'; return; }
+  autocompleteTimeout = setTimeout(async () => {
+    // First: search mapped items
+    const mapped = searchMappedItems(val);
+    // Then: geocode suggestions from Mapbox
+    let geoResults = [];
+    try {
+      const token = mapboxgl.accessToken;
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(val)}.json?access_token=${token}&country=US&bbox=-113.5,32.5,-110.5,34.5&limit=4&types=address,place,neighborhood`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      geoResults = data.features || [];
+    } catch(e) {}
+    autocompleteResults = [
+      ...mapped.map(m => ({_type:'mapped', item:m})),
+      ...geoResults.map(f => ({_type:'geo', feature:f}))
+    ];
+    selectedIdx = -1;
+    if (autocompleteResults.length === 0) { autocompleteList.style.display = 'none'; return; }
+    autocompleteList.innerHTML = autocompleteResults.map((r, i) => {
+      if (r._type === 'mapped') {
+        const m = r.item;
+        const icon = LAYER_ICONS[m.type] || '📌';
+        return `<div class="autocomplete-item" data-idx="${i}" onclick="selectAutocomplete(${i})">
+          <span class="autocomplete-icon">${icon}</span>
+          <div><div class="autocomplete-main">${m.name}</div><div class="autocomplete-sub">${m.address}${m.notes ? ' · ' + m.notes : ''}</div></div>
+        </div>`;
+      } else {
+        const parts = r.feature.place_name.split(',');
+        return `<div class="autocomplete-item" data-idx="${i}" onclick="selectAutocomplete(${i})">
+          <span class="autocomplete-icon">📍</span>
+          <div><div class="autocomplete-main">${parts[0]}</div><div class="autocomplete-sub">${parts.slice(1).join(',').trim()}</div></div>
+        </div>`;
+      }
+    }).join('');
+    autocompleteList.style.display = 'block';
+  }, 250);
+});
+
+searchBox.addEventListener('keydown', (e) => {
+  const items = autocompleteList.querySelectorAll('.autocomplete-item');
+  if (e.key === 'ArrowDown') { selectedIdx = Math.min(selectedIdx + 1, items.length - 1); items.forEach((el, i) => el.classList.toggle('selected', i === selectedIdx)); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { selectedIdx = Math.max(selectedIdx - 1, 0); items.forEach((el, i) => el.classList.toggle('selected', i === selectedIdx)); e.preventDefault(); }
+  else if (e.key === 'Enter') { if (selectedIdx >= 0) selectAutocomplete(selectedIdx); else if (autocompleteResults.length > 0) selectAutocomplete(0); else performSearch(); }
+  else if (e.key === 'Escape') { autocompleteList.style.display = 'none'; }
+});
+
+function selectAutocomplete(idx) {
+  const r = autocompleteResults[idx];
+  if (!r) return;
+  autocompleteList.style.display = 'none';
+  if (r._type === 'mapped') {
+    const m = r.item;
+    searchBox.value = m.name;
+    showSearchResult(m.lng, m.lat, m.name + (m.address ? ', ' + m.address : ''));
+  } else {
+    const f = r.feature;
+    searchBox.value = f.place_name.split(',')[0];
+    const [lng, lat] = f.geometry.coordinates;
+    showSearchResult(lng, lat, f.place_name);
+  }
+}
+
+async function performSearch() {
+  const val = searchBox.value.trim();
+  if (!val) return;
+  const coords = await geocodeAddress(val);
+  if (coords) showSearchResult(coords[0], coords[1], val);
+  else document.getElementById('search-result').innerHTML = '<span style="color:#e74c3c;">Address not found in service area</span>';
+}
+
+function showSearchResult(lng, lat, label) {
+  if (searchMarker) searchMarker.remove();
+  const zone = getZoneForCoords(lng, lat);
+  const zoneColor = ZONES[zone]?.color || '#aaa';
+  const el = document.createElement('div');
+  el.style.cssText = `width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid ${zoneColor};box-shadow:0 0 10px ${zoneColor};`;
+  searchMarker = new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map);
+  map.flyTo({ center: [lng, lat], zoom: 12, speed: 1.2 });
+  const resultEl = document.getElementById('search-result');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `<div style="font-weight:700;color:#fff;margin-bottom:4px;">${label.split(',')[0]}</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.5);">${label.split(',').slice(1).join(',').trim()}</div>
+    <div style="margin-top:8px;padding:6px 10px;border-radius:8px;background:rgba(${zoneColor.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.15);border:1px solid rgba(${zoneColor.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.4);color:${zoneColor};font-weight:700;font-size:12px;">
+      📍 ${zone}
+    </div>`;
+}
+
+function clearSearch() {
+  searchBox.value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  document.getElementById('search-result').style.display = 'none';
+  autocompleteList.style.display = 'none';
+  if (searchMarker) { searchMarker.remove(); searchMarker = null; }
+}
+
+searchBox.addEventListener('blur', () => { setTimeout(() => { autocompleteList.style.display = 'none'; }, 150); });
+
+// ─── SUPPLIER LAYER TOGGLE ───────────────────────────────────────────────────
+
+const supplierMarkers = {
+  homedepot: [], siteone: [], sprinklerworld: [], ace: [],
+  turf: [], rock: [], tile: [], hardscape: [],
+  floordecor: [], horizon: [], bbq: [], other: [],
+  nursery: [], plumbing: [], pool: [], misc: []
+};
+const supplierVisible = {
+  homedepot: false, siteone: false, sprinklerworld: false, ace: false,
+  turf: false, rock: false, tile: false, hardscape: false,
+  floordecor: false, horizon: false, bbq: false, other: false,
+  nursery: false, plumbing: false, pool: false, misc: false
+};
+
+const TURF_STORES = [{"name": "Synthetic Grass Warehouse - Glendale", "address": "5700 N 101st Ave, Glendale, AZ 85307", "lat": 33.51849, "lng": -112.27754}, {"name": "Synthetic Grass Warehouse - Gilbert", "address": "4465 E Nunneley Rd, Gilbert, AZ 85296", "lat": 33.329907, "lng": -111.694125}, {"name": "Verde Valley Turf - Phoenix", "address": "430 N 47th Ave, Phoenix, AZ 85043", "lat": 33.454108, "lng": -112.161431}, {"name": "Verde Valley Turf - Queen Creek", "address": "18698 E Business Park Dr, Queen Creek, AZ 85142", "lat": 33.280015, "lng": -111.680315}, {"name": "Turf Hub - Chandler", "address": "1725 E Germann Rd, Chandler, AZ 85286", "lat": 33.276423, "lng": -111.813196}, {"name": "Turf Hub - Phoenix", "address": "180 W Pinnacle Peak Rd, Phoenix, AZ 85027", "lat": 33.69934, "lng": -112.077878}, {"name": "Turf Hub - Peoria", "address": "9700 N 91st Ave, Peoria, AZ 85345", "lat": 33.571937, "lng": -112.255798}, {"name": "No Limit Turf - Mesa", "address": "8305 E Sebring Ave, Mesa, AZ 85212", "lat": 33.332864, "lng": -111.654913}, {"name": "Turf Sellers - Phoenix", "address": "405 N 75th Ave, Phoenix, AZ 85043", "lat": 33.454699, "lng": -112.219217}];
+const ROCK_STORES = [{"name": "MDI Rock", "address": "2815 E Rose Garden Ln, Phoenix, AZ 85050", "phone": "(602) 569-8722", "website": "mdirock.com", "notes": "Best for boulders + client visits", "showroom": false, "ranking": "Preferred", "lat": 33.67624, "lon": -112.021}, {"name": "ABC Sand & Rock", "address": "1804 N 27th Ave, Phoenix, AZ 85009", "phone": "(602) 272-1792", "website": "abcsandrock.com", "notes": "Most consistent supply", "showroom": false, "ranking": "Preferred", "lat": 33.468417, "lon": -112.117534}, {"name": "A&A Materials", "address": "10333 E McDowell Rd, Scottsdale, AZ 85256", "phone": "(480) 986-1110", "website": "", "notes": "Bulk aggregate", "showroom": false, "ranking": "Secondary", "lat": 33.46537, "lon": -111.859353}, {"name": "A-1 Materials", "address": "9503 W Buckeye Rd, Tolleson, AZ 85353", "phone": "(623) 936-9600", "website": "", "notes": "West Valley aggregate", "showroom": false, "ranking": "Secondary", "lat": 33.435235, "lon": -112.264101}, {"name": "J&J Landscaping Material", "address": "5000 E McKellips Rd, Mesa, AZ 85215", "phone": "(480) 832-0500", "website": "", "notes": "East Valley bulk material", "showroom": false, "ranking": "Secondary", "lat": 33.452436, "lon": -111.722931}, {"name": "The Stone Yard - North Phoenix", "address": "1739 W Park View Ln, Phoenix, AZ 85085", "phone": "(623) 580-1234", "website": "", "notes": "Decorative rock yard", "showroom": false, "ranking": "Secondary", "lat": 33.70701, "lon": -112.09701}, {"name": "Carso Landscape Supply", "address": "10701 W Hatfield Rd, Sun City, AZ 85373", "phone": "(623) 977-3800", "website": "", "notes": "West Valley landscape supply", "showroom": false, "ranking": "Secondary", "lat": 33.70564, "lon": -112.29134}, {"name": "Rock 4 Less", "address": "21839 N 16th Ave, Phoenix, AZ 85027", "phone": "", "website": "rock4lessaz.com", "notes": "Cost-effective", "showroom": false, "ranking": "Secondary", "lat": 33.66866, "lon": -112.093398}, {"name": "West Valley Rock", "address": "25376 W Tonopah Salome Hwy, Buckeye, AZ 85396", "phone": "", "website": "westvalleyrock.com", "notes": "Large boulder sourcing", "showroom": false, "ranking": "Specialty", "lat": 33.436335, "lon": -112.596945}, {"name": "B-Line Materials", "address": "3318 S 80th St, Mesa, AZ 85212", "phone": "(602) 432-5230", "website": "blinematerials.com", "notes": "Decorative rock, sand and gravel - East Valley", "showroom": false, "ranking": "Preferred", "lat": 33.355338, "lon": -111.662161}, {"name": "MDI Rock - Queen Creek / San Tan Valley", "address": "1566 W Ocotillo Rd, San Tan Valley, AZ 85140", "phone": "(480) 888-0487", "website": "mdirock.com", "showroom": false, "notes": "East Valley MDI Rock location. Open to public. Best for boulders + client visits.", "lat": 33.25001, "lon": -111.58178}, {"name": "ABC Sand & Rock - Glendale", "address": "5401 N 119th Ave, Glendale, AZ 85307", "lat": 33.4749439, "lng": -112.3151391, "showroom": false, "notes": "Second ABC Sand & Rock location. Decorative rock, sand, gravel."}];
+const TILE_STORES = [{"name": "Monterrey Tile (Phoenix)", "address": "3232 S 48th St #111, Phoenix, AZ 85040", "phone": "(480) 219-2494", "website": "monterreytile.com", "notes": "Strongest showroom experience", "showroom": true, "ranking": "Preferred", "lat": 33.41716, "lon": -111.979243}, {"name": "Monterrey Tile (Chandler)", "address": "401 E Ray Rd, Chandler, AZ 85225", "phone": "(480) 855-6622", "website": "monterreytile.com", "notes": "Slab yard", "showroom": true, "ranking": "Preferred", "lat": 33.319732, "lon": -111.836212}, {"name": "QDI Surfaces - Scottsdale", "address": "15678 N Greenway Hayden Loop, Scottsdale, AZ 85254", "phone": "(480) 903-0011", "website": "qdisurfaces.com", "notes": "Design-forward", "showroom": true, "ranking": "Preferred", "lat": 33.62833, "lon": -111.916312}, {"name": "Arizona Tile", "address": "1855 W Broadway Rd, Tempe, AZ 85282", "phone": "(480) 893-9393", "website": "arizonatile.com", "notes": "Reliable", "showroom": true, "ranking": "Preferred", "lat": 33.409099, "lon": -111.968936}, {"name": "Bedrosians Tile & Stone", "address": "15440 N 84th St, Scottsdale, AZ 85260", "phone": "(480) 922-9770", "website": "bedrosians.com", "notes": "Strong for porcelain, slab, and design-forward materials", "showroom": true, "ranking": "Preferred", "lat": 33.62667, "lon": -111.899576}, {"name": "Aqua Bella Tile", "address": "2850 S Roosevelt St, Tempe, AZ 85282", "phone": "(602) 748-4080", "website": "aquabellatile.com", "notes": "Pool tile specialist", "showroom": true, "ranking": "Preferred", "lat": 33.398263, "lon": -111.949322}];
+const HARDSCAPE_STORES = [{"name": "MSI Surfaces", "address": "4405 W Roosevelt St, Phoenix, AZ 85009", "phone": "(602) 393-6330", "website": "msisurfaces.com", "notes": "Large inventory, fast availability", "showroom": true, "ranking": "Preferred", "lat": 33.459139, "lon": -112.155524}, {"name": "The Stone Collection", "address": "4101 S 38th St, Phoenix, AZ 85040", "phone": "(602) 889-2067", "website": "thestonecollection.com", "notes": "High-end curated slabs", "showroom": true, "ranking": "Preferred", "lat": 33.409761, "lon": -111.998404}, {"name": "Durango Stone", "address": "15550 N 84th St #105, Scottsdale, AZ 85260", "phone": "(602) 438-1001", "website": "durangostone.com", "notes": "Luxury travertine/limestone", "showroom": true, "ranking": "Preferred", "lat": 33.627288, "lon": -111.900336}, {"name": "Belgard Solution Center", "address": "1919 W Fairmont Dr Suite 5, Tempe, AZ 85282", "phone": "(770) 828-5941", "website": "belgard.com", "showroom": true, "notes": "Oldcastle APG Solutions Center \u2014 full Belgard product showroom with outdoor displays", "lat": 33.395609, "lon": -111.969065}, {"name": "Pioneer Landscape Centers", "address": "1515 W Deer Valley Rd, Phoenix, AZ 85027", "lat": 33.6862, "lng": -112.0467, "showroom": true, "notes": "SiteOne family. Full hardscape showroom \u2014 pavers, walls, edging."}];
+const FLOOR_DECOR_STORES = [{"name": "Floor & Decor - Phoenix", "address": "1800 E Highland Ave, Phoenix, AZ 85016", "phone": "", "website": "flooranddecor.com", "notes": "Full tile, stone, and hardwood selection", "showroom": true, "ranking": "Preferred", "lat": 33.506669, "lon": -112.042349}, {"name": "Floor & Decor - Chandler", "address": "1901 E Northrop Blvd, Chandler, AZ 85286", "phone": "", "website": "flooranddecor.com", "notes": "Full tile, stone, and hardwood selection", "showroom": true, "ranking": "Preferred", "lat": 33.27904, "lon": -111.80905}, {"name": "Floor & Decor - Glendale", "address": "5880 W Bell Rd, Glendale, AZ 85308", "phone": "", "website": "flooranddecor.com", "notes": "Full tile, stone, and hardwood selection", "showroom": true, "ranking": "Preferred", "lat": 33.641485, "lon": -112.185115}, {"name": "Floor & Decor - Surprise", "address": "13230 N Prasada Pkwy, Surprise, AZ 85388", "phone": "", "website": "flooranddecor.com", "notes": "Full tile, stone, and hardwood selection", "showroom": true, "ranking": "Preferred", "lat": 33.604521, "lon": -112.416851}, {"name": "Floor & Decor - Tolleson", "address": "9261 W McDowell Rd, Tolleson, AZ 85353", "phone": "", "website": "flooranddecor.com", "notes": "Full tile, stone, and hardwood selection", "showroom": true, "ranking": "Preferred", "lat": 33.4639, "lon": -112.258638}, {"name": "Floor & Decor - Tempe", "address": "7500 S Priest Dr, Tempe, AZ 85283", "phone": "(480) 838-3046", "website": "flooranddecor.com", "showroom": true, "notes": "Full tile, stone, and hardwood selection", "lat": 33.350381, "lon": -111.964751}, {"name": "Floor & Decor - Mesa", "address": "7022 E Hampton Ave, Mesa, AZ 85209", "lat": 33.3914679, "lng": -111.6795474, "showroom": true, "notes": "Full flooring showroom. Tile, stone, wood, vinyl, fixtures."}, {"name": "Floor & Decor - Scottsdale", "address": "15515 N Hayden Rd, Scottsdale, AZ 85260", "lat": 33.6267448, "lng": -111.8966677, "showroom": true, "notes": "Opened October 2025. Full flooring showroom."}];
+const HORIZON_STORES = [{"name": "Horizon Landscape Supply - Chandler", "address": "4055 W Saturn Way, Chandler, AZ 85226", "phone": "", "website": "horizononline.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.30153, "lon": -111.912522}, {"name": "Horizon Landscape Supply - Gilbert", "address": "4635 E Warner Rd, Gilbert, AZ 85296", "phone": "", "website": "horizononline.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.33573, "lon": -111.69058}, {"name": "Horizon Landscape Supply - Goodyear", "address": "13920 W El Cielo, Goodyear, AZ 85338", "phone": "", "website": "horizononline.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.42327, "lon": -112.358396}, {"name": "Horizon Landscape Supply - Mesa", "address": "201 W Juanita Ave, Mesa, AZ 85210", "phone": "", "website": "horizononline.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.381805, "lon": -111.835985}, {"name": "Horizon Landscape Supply - Phoenix (Tatum)", "address": "17826 N Tatum Blvd, Phoenix, AZ 85032", "phone": "", "website": "horizononline.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.648483, "lon": -111.978174}, {"name": "Horizon Landscape Supply - Peoria", "address": "8746 W Kelton Ln, Peoria, AZ 85382", "phone": "", "website": "horizononline.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.63582, "lon": -112.24771}, {"name": "Horizon Landscape Supply - Phoenix (S 30th)", "address": "5214 S 30th St, Phoenix, AZ 85040", "phone": "", "website": "horizononline.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.399127, "lon": -112.018173}, {"name": "Horizon Landscape Supply - Queen Creek", "address": "21515 E Ocotillo Rd, Queen Creek, AZ 85142", "phone": "", "website": "horizononline.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.24765, "lon": -111.61862}, {"name": "Horizon Landscape Supply - Scottsdale", "address": "15517 N 77th St, Scottsdale, AZ 85260", "phone": "", "website": "horizononline.com", "notes": "Full landscape supply", "showroom": false, "ranking": "Preferred", "lat": 33.626565, "lon": -111.914129}];
+const BBQ_STORES = [{"name": "BBQ Island - Scottsdale", "address": "14987 N Northsight Blvd, Scottsdale, AZ 85260", "phone": "", "website": "bbqislandinc.com", "notes": "Best showroom", "showroom": true, "ranking": "Preferred", "lat": 33.621433, "lon": -111.897037}, {"name": "BBQ Island - Tempe", "address": "1715 W Ruby Dr #105, Tempe, AZ 85284", "phone": "", "website": "bbqislandinc.com", "notes": "Showroom", "showroom": true, "ranking": "Preferred", "lat": 33.339284, "lon": -111.967107}, {"name": "BBQ Island - Peoria", "address": "8155 W Bell Rd #111, Peoria, AZ 85382", "phone": "", "website": "bbqislandinc.com", "notes": "Showroom", "showroom": true, "ranking": "Preferred", "lat": 33.63622, "lon": -112.23056}, {"name": "BBQ Island - Gilbert", "address": "4630 E Ray Rd, Gilbert, AZ 85296", "phone": "", "website": "bbqislandinc.com", "notes": "Showroom", "showroom": true, "ranking": "Preferred", "lat": 33.32206, "lon": -111.69062}, {"name": "KoKoMo Grills", "address": "21415 N Black Canyon Hwy, Phoenix, AZ 85027", "phone": "", "website": "kokomogrills.com", "notes": "Direct manufacturer showroom", "showroom": true, "ranking": "Secondary", "lat": 33.679989, "lon": -112.111797}, {"name": "Arizona Fireplaces - North", "address": "20835 N 25th Pl, Phoenix, AZ 85024", "phone": "(602) 343-1000", "website": "arizonafireplaces.com", "notes": "Strong fireplace/fire feature displays", "showroom": true, "ranking": "Preferred", "lat": 33.676561, "lon": -112.0276}, {"name": "Arizona Fireplaces - South", "address": "3435 E Atlanta Ave, Phoenix, AZ 85040", "phone": "(602) 243-6423", "website": "arizonafireplaces.com", "notes": "Inventory hub", "showroom": true, "ranking": "Preferred", "lat": 33.400911, "lon": -112.007424}];
+const OTHER_STORES = [{"name": "RWC Building Products - Phoenix", "address": "1918 W Grant St, Phoenix, AZ 85009", "lat": 33.441489, "lng": -112.102036}, {"name": "RWC Building Products - Scottsdale", "address": "7475 E Williams Dr, Scottsdale, AZ 85255", "lat": 33.690525, "lng": -111.919414}, {"name": "RWC Building Products - Mesa", "address": "1345 S Center St, Mesa, AZ 85210", "lat": 33.39062, "lng": -111.83089}];
+const NURSERY_STORES = [{"name": "Whitfill Nursery", "address": "824 E Glendale Ave, Phoenix, AZ 85021", "phone": "(602) 944-8479", "website": "whitfillnursery.com", "notes": "Best all-around \u2014 Preferred", "showroom": false, "lat": 33.53867, "lon": -112.0612}, {"name": "Moon Valley Nurseries", "address": "18047 N Tatum Blvd, Phoenix, AZ 85032", "phone": "(480) 374-3964", "website": "moonvalley.com", "notes": "Specimen trees \u2014 Secondary", "showroom": false, "lat": 33.65069, "lon": -111.976445}, {"name": "Sun Valley Nursery", "address": "11416 E Desert Cove Ave, Scottsdale, AZ 85259", "phone": "(480) 767-1800", "website": "sunvalleynursery.com", "notes": "Clean selection \u2014 Secondary", "showroom": false, "lat": 33.586706, "lon": -111.834574}, {"name": "SummerWinds Nursery", "address": "17826 N Tatum Blvd, Phoenix, AZ 85032", "phone": "", "website": "summerwindsnursery.com", "notes": "Retail-friendly \u2014 Secondary", "showroom": false, "lat": 33.648483, "lon": -111.978174}, {"name": "Arid Solutions Nursery", "address": "3815 E Southern Ave, Phoenix, AZ 85040", "lat": 33.3925554, "lng": -111.9996032, "showroom": false, "notes": "Wholesale plant nursery. Open weekdays 6am\u20132pm."}, {"name": "V&P Nurseries", "address": "21919 E Germann Rd, Queen Creek, AZ 85142", "showroom": false, "notes": "Wholesale plant nursery. Drought-tolerant and subtropical varieties. Landscape professionals.", "lat": 33.2780011, "lon": -111.6735803}];
+const PLUMBING_STORES = [{"name": "Studio 44 Design", "address": "8924 E Pinnacle Peak Rd Suite G5, Scottsdale, AZ 85255", "phone": "(602) 309-4161", "website": "studio44design.com", "notes": "High-end curated interior design + plumbing showroom \u2014 Preferred", "showroom": true, "lat": 33.69885, "lon": -111.888321}, {"name": "Kohler Signature Store", "address": "4513 N Scottsdale Rd Suite 116, Scottsdale, AZ 85251", "phone": "(480) 397-2021", "website": "kohler.com", "notes": "Premium Kohler fixtures, Kallista, Robern, Ann Sacks \u2014 Preferred", "showroom": true, "lat": 33.503031, "lon": -111.925723}, {"name": "Ferguson Home - Scottsdale", "address": "15000 N Hayden Rd, Scottsdale, AZ 85260", "phone": "(480) 556-0103", "website": "fergusonhome.com", "notes": "Bath, kitchen & lighting showroom \u2014 Preferred", "showroom": true, "lat": 33.62026, "lon": -111.908088}, {"name": "Ferguson Home - Mesa", "address": "3426 E Baseline Rd, Mesa, AZ 85204", "phone": "(480) 444-5000", "website": "fergusonhome.com", "notes": "Bath, kitchen & lighting showroom \u2014 Preferred", "showroom": true, "lat": 33.381215, "lon": -111.75697}, {"name": "Central Arizona Supply - Scottsdale", "address": "16431 N 90th St, Scottsdale, AZ 85260", "phone": "(480) 922-9191", "website": "centralazsupply.com", "notes": "Contractor plumbing supply + showroom \u2014 Preferred", "showroom": true, "lat": 33.635605, "lon": -111.886546}, {"name": "Facets of Arizona", "address": "9780 W Northern Ave Suite 1120, Peoria, AZ 85345", "phone": "(623) 220-0704", "website": "facetsaz.com", "notes": "Ultra high-end decorative plumbing + hardware showroom \u2014 Specialty", "showroom": true, "lat": 33.552156, "lon": -112.269937}];
+const POOL_STORES = [{"name": "NPT Pool Tile - Mesa", "address": "7307 E Hampton Ave Ste 102, Mesa, AZ 85209", "showroom": true, "notes": "National Pool Tile showroom. Mon-Fri 8am-3:30pm, Sat 8am-12pm. Phone: (480) 520-5242", "water": true, "lat": 33.3784, "lon": -111.7025}, {"name": "NPT Pool Tile - Tempe", "address": "2440 W University Dr, Tempe, AZ 85281", "showroom": true, "notes": "National Pool Tile showroom. Mon-Fri 8am-3:30pm, Sat 8am-12pm. Phone: (480) 968-9929", "water": true, "lat": 33.4226787, "lon": -111.9756007}, {"name": "NPT Pool Tile - West Phoenix", "address": "640 N 43rd Ave #150, Phoenix, AZ 85009", "showroom": true, "notes": "National Pool Tile showroom. Mon-Fri 8am-2:30pm, Sat 7am-11am. Phone: (602) 278-5179", "water": true, "lat": 33.4758, "lon": -112.1327}, {"name": "SCP Distributors - Phoenix", "address": "18201 N 25th Ave, Phoenix, AZ 85023", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.6518801, "lon": -112.1119301}, {"name": "SCP Distributors - Chandler", "address": "261 N Roosevelt Ave, Chandler, AZ 85226", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.3073328, "lon": -111.9512944}, {"name": "SCP Distributors - Gilbert", "address": "560 E Germann Rd, Gilbert, AZ 85297", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.2782585, "lon": -111.7774679}, {"name": "SCP Distributors - Mesa", "address": "2350 W Broadway Rd Ste 110, Mesa, AZ 85202", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.4023, "lon": -111.978}, {"name": "SCP Distributors - Scottsdale", "address": "7841 E Gray Rd Ste A, Scottsdale, AZ 85260", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.5987, "lon": -111.9108}, {"name": "SCP Distributors - Tempe", "address": "8945 S Harl Ave Ste 106, Tempe, AZ 85284", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.3418, "lon": -111.9318}, {"name": "Aquatec Fountains Inc", "address": "13613 N 32nd St, Phoenix, AZ 85032", "showroom": false, "notes": "Fountain contractor and supply. Design, construction, maintenance, repair. Phone: (602) 589-1000", "water": true, "lat": 33.6099989, "lon": -112.0120918}, {"name": "Majestic Water Spouts", "address": "940 S Park Lane Suite 2, Tempe, AZ 85281", "showroom": false, "notes": "Water spouts, scuppers, and pool water features. Custom design available.", "water": true, "lat": 33.4226, "lon": -111.9756}];
+const MISC_STORES = [{"name": "Sonoran Lighting Supply", "address": "2920 E Mohawk Ln Ste 102, Phoenix, AZ 85050", "lat": 33.6738345, "lng": -112.0194569, "showroom": false, "notes": "Lighting wholesale and design center. Outdoor and landscape lighting."}, {"name": "Cholla Tile (Mesa)", "address": "4340 S 80th St, Mesa, AZ 85212", "showroom": true, "notes": "Tile showroom. Phone: (480) 991-1768", "lat": 33.3554803, "lon": -111.6619278}, {"name": "Cholla Tile (Glendale)", "address": "5455 W Montebello Ave, Glendale, AZ 85301", "showroom": true, "notes": "Tile showroom. Phone: (480) 991-1768", "lat": 33.520344, "lon": -112.1766196}, {"name": "Imperial Wholesale", "address": "9602 E Apache Trail, Mesa, AZ 85207", "showroom": true, "notes": "30,000 sq ft showroom. Flooring, countertops, backsplashes. Phone: (480) 986-6900", "lat": 33.416071, "lon": -111.623401}, {"name": "Universal White Cement", "address": "5610 W Maryland Ave, Glendale, AZ 85301", "showroom": false, "notes": "Pool interior supply and distribution. Plaster blending facility.", "lat": 33.532351, "lon": -112.1798496}, {"name": "ANS Mermer", "address": "2850 E Jones Ave, Phoenix, AZ 85040", "showroom": false, "notes": "Closed to public. Visit for samples only. Natural stone and marble supplier.", "lat": 33.4107514, "lon": -112.0200619}];
+
+function createStarSVG(color, size) {
+  const s = size || 22;
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    const r = i % 2 === 0 ? s / 2 : s / 5;
+    pts.push(`${s/2 + r * Math.cos(angle)},${s/2 + r * Math.sin(angle)}`);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <polygon points="${pts.join(' ')}" fill="${color}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"
+      style="filter:drop-shadow(0 0 4px ${color})"/>
+  </svg>`;
+}
+
+function createTriangleSVG(color, size) {
+  const s = size || 22;
+  const pad = s * 0.1;
+  const pts = `${s/2},${pad} ${s-pad},${s-pad} ${pad},${s-pad}`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <polygon points="${pts}" fill="${color}" stroke="rgba(255,255,255,0.9)" stroke-width="1.5"
+      style="filter:drop-shadow(0 0 4px ${color})"/>
+  </svg>`;
+}
+
+function createFireSVG(color, size) {
+  const s = size || 24;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24">
+    <path d="M12 2 C10 6 7 8 7 12 C7 15.3 9.2 18 12 18 C14.8 18 17 15.3 17 12 C17 10 15.5 8.5 14 7 C14 9 13 10.5 12 11 C12 8 12.5 5 12 2 Z" fill="${color}" stroke="rgba(255,255,255,0.7)" stroke-width="0.8" style="filter:drop-shadow(0 0 5px ${color})"/>
+    <path d="M12 13 C11 14 10.5 15 11 16.5 C11.5 18 12 18 12 18 C12 18 12.5 18 13 16.5 C13.5 15 13 14 12 13 Z" fill="#fff" opacity="0.5"/>
+  </svg>`;
+}
+
+function createHerbSVG(color, size) {
+  const s = size || 22;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24">
+    <path d="M12 22 C12 22 12 14 12 12" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M12 16 C12 16 8 14 7 10 C9 10 11 12 12 14" fill="${color}" opacity="0.9"/>
+    <path d="M12 13 C12 13 16 11 17 7 C15 7 13 9 12 11" fill="${color}"/>
+    <path d="M12 19 C12 19 9 17 8 14" stroke="${color}" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    <circle cx="12" cy="22" r="1.5" fill="${color}" opacity="0.6"/>
+  </svg>`;
+}
+
+function createWaterSVG(color, size) {
+  const s = size || 22;
+  // Water drop shape using SVG path
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24">
+    <path d="M12 2 C12 2 4 10 4 15 C4 19.4 7.6 23 12 23 C16.4 23 20 19.4 20 15 C20 10 12 2 12 2 Z"
+      fill="${color}" stroke="rgba(255,255,255,0.8)" stroke-width="1.2"
+      style="filter:drop-shadow(0 0 4px ${color})"/>
+  </svg>`;
+}
+
+function createDiamondSVG(color, size) {
+  const s = size || 20;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <rect x="${s*0.15}" y="${s*0.15}" width="${s*0.7}" height="${s*0.7}" rx="2" fill="${color}"
+      stroke="rgba(255,255,255,0.9)" stroke-width="1.5" transform="rotate(45 ${s/2} ${s/2})"
+      style="filter:drop-shadow(0 0 4px ${color})"/>
+  </svg>`;
+}
+
+function createSupplierPopup(store, brand) {
+  const colors = {
+    homedepot: '#f96302', siteone: '#2ecc71', sprinklerworld: '#3498db', ace: '#e74c3c',
+    turf: '#a8e063', rock: '#d4a017', tile: '#9b59b6', hardscape: '#e91e8c',
+    floordecor: '#00bcd4', horizon: '#4caf50', bbq: '#ff9800', other: '#7ab8ff'
+  };
+  const labels = {
+    homedepot: 'Home Depot', siteone: 'SiteOne Family', sprinklerworld: 'Sprinkler World', ace: 'Ace Hardware',
+    turf: 'Turf Supplier', rock: 'Rock & Aggregate', tile: 'Tile & Stone', hardscape: 'Hardscapes',
+    floordecor: 'Floor & Decor', horizon: 'Horizon Supply', bbq: 'BBQ / Outdoor Living', other: 'RWC'
+  };
+  const color = colors[brand] || '#fff';
+  const label = labels[brand] || brand;
+  const showroomBadge = store.showroom ? `<div style="display:inline-block;padding:2px 8px;border-radius:12px;background:rgba(255,215,0,0.15);color:#ffd700;border:1px solid rgba(255,215,0,0.4);font-size:10px;font-weight:700;margin-bottom:6px;">★ SHOWROOM</div><br>` : '';
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + ' ' + store.address)}`;
+  const rgb = color.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',');
+  const noteHtml = store.notes ? `<div class="popup-row" style="font-style:italic;color:rgba(255,255,255,0.5);margin-top:4px;">"${store.notes}"</div>` : '';
+  const rankHtml = store.ranking ? `<div class="popup-row">Ranking: <span style="color:${color};font-weight:600;">${store.ranking}</span></div>` : '';
+  return `<div class="popup-inner">
+    <div class="popup-title" style="color:${color};">${store.name}</div>
+    ${showroomBadge}
+    <div class="popup-badge" style="background:rgba(${rgb},0.15);color:${color};border:1px solid rgba(${rgb},0.3);">${label}</div>
+    ${store.type ? `<div class="popup-row">Type: <span>${store.type}</span></div>` : ''}
+    <div class="popup-row">Address: <span>${store.address || 'N/A'}</span></div>
+    ${store.phone ? `<div class="popup-row">Phone: <span>${store.phone}</span></div>` : ''}
+    ${rankHtml}
+    ${noteHtml}
+    ${store.distance_miles ? `<div class="popup-row">Distance: <span>${store.distance_miles} mi from office</span></div>` : ''}
+    ${store.pro_phone ? `<div class="popup-row" style="color:${color};font-weight:600;">Pro Services: <span style="color:${color};">${store.pro_phone}</span></div>` : ''}
+    <a class="popup-link" href="${mapsUrl}" target="_blank" style="color:${color};border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);">Open in Google Maps →</a>
+  </div>`;
+}
+
+function toggleSupplier(key) {
+  const btn = document.getElementById(`btn-${key}`);
+  supplierVisible[key] = !supplierVisible[key];
+  if (supplierVisible[key]) {
+    btn.textContent = 'ON'; btn.classList.add('active');
+    supplierMarkers[key].forEach(m => m.addTo(map));
+  } else {
+    btn.textContent = 'OFF'; btn.classList.remove('active');
+    supplierMarkers[key].forEach(m => m.remove());
+  }
+}
+
+function toggleAllSuppliers(on) {
+  Object.keys(supplierMarkers).forEach(key => {
+    const btn = document.getElementById(`btn-${key}`);
+    if (!btn) return;
+    supplierVisible[key] = on;
+    if (on) {
+      btn.textContent = 'ON'; btn.classList.add('active');
+      supplierMarkers[key].forEach(m => m.addTo(map));
+    } else {
+      btn.textContent = 'OFF'; btn.classList.remove('active');
+      supplierMarkers[key].forEach(m => m.remove());
+    }
+  });
+}
+
+function makeSupplierMarker(store, brand, svgFn, color, size) {
+  const el = document.createElement('div');
+  el.style.cssText = `cursor:pointer;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 4px ${color});transition:filter 0.15s;`;
+  el.innerHTML = svgFn(color, size);
+  el.addEventListener('mouseenter', () => { el.style.filter = `drop-shadow(0 0 8px ${color}) drop-shadow(0 0 4px #fff)`; showLabel(store.name, el); });
+  el.addEventListener('mouseleave', () => { el.style.filter = `drop-shadow(0 0 4px ${color})`; hideLabel(); });
+  const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createSupplierPopup(store, brand));
+  const lng = store.lon !== undefined ? store.lon : store.lng;
+  return new mapboxgl.Marker(el).setLngLat([lng, store.lat]).setPopup(popup);
+}
+
+function makeShowroomSVG(color, size) {
+  const s = size || 28;
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI / 5) * i - Math.PI / 2;
+    const r = i % 2 === 0 ? s / 2 : s / 4;
+    pts.push(`${s/2 + r * Math.cos(angle)},${s/2 + r * Math.sin(angle)}`);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
+    <polygon points="${pts.join(' ')}" fill="${color}" stroke="#ffd700" stroke-width="2"
+      style="filter:drop-shadow(0 0 6px ${color}) drop-shadow(0 0 3px #ffd700)"/>
+    <text x="${s/2}" y="${s/2+4}" text-anchor="middle" font-size="9" fill="#000" font-weight="bold">★</text>
+  </svg>`;
+}
+
+function initSupplierLayers() {
+  // Home Depot - orange stars
+  HD_STORES.forEach(store => {
+    supplierMarkers.homedepot.push(makeSupplierMarker(store, 'homedepot', createTriangleSVG, '#f96302', 24));
+  });
+  document.getElementById('hd-count').textContent = `(${HD_STORES.length})`;
+
+  // SiteOne - green diamonds
+  SITEONE_STORES.forEach(store => {
+    supplierMarkers.siteone.push(makeSupplierMarker(store, 'siteone', createDiamondSVG, '#2ecc71', 22));
+  });
+  document.getElementById('siteone-count').textContent = `(${SITEONE_STORES.length})`;
+
+  // Sprinkler World - blue diamonds
+  SW_STORES.forEach(store => {
+    supplierMarkers.sprinklerworld.push(makeSupplierMarker(store, 'sprinklerworld', createDiamondSVG, '#3498db', 22));
+  });
+  document.getElementById('sw-count').textContent = `(${SW_STORES.length})`;
+
+  // Ace Hardware - red stars
+  ACE_STORES.forEach(store => {
+    supplierMarkers.ace.push(makeSupplierMarker(store, 'ace', createStarSVG, '#e74c3c', 22));
+  });
+  document.getElementById('ace-count').textContent = `(${ACE_STORES.length})`;
+
+  // Turf - lime green diamonds
+  TURF_STORES.forEach(store => {
+    supplierMarkers.turf.push(makeSupplierMarker(store, 'turf', createDiamondSVG, '#a8e063', 20));
+  });
+  document.getElementById('turf-count').textContent = `(${TURF_STORES.length})`;
+
+  // Rock & Aggregate - dark gold diamonds
+  ROCK_STORES.forEach(store => {
+    supplierMarkers.rock.push(makeSupplierMarker(store, 'rock', createDiamondSVG, '#d4a017', 20));
+  });
+  document.getElementById('rock-count').textContent = `(${ROCK_STORES.length})`;
+
+  // Tile & Stone - purple (showrooms get big star)
+  TILE_STORES.forEach(store => {
+    const fn = store.showroom ? makeShowroomSVG : createDiamondSVG;
+    const sz = store.showroom ? 28 : 20;
+    supplierMarkers.tile.push(makeSupplierMarker(store, 'tile', fn, '#9b59b6', sz));
+  });
+  document.getElementById('tile-count').textContent = `(${TILE_STORES.length})`;
+
+  // Hardscapes - hot pink (showrooms get big star)
+  HARDSCAPE_STORES.forEach(store => {
+    const fn = store.showroom ? makeShowroomSVG : createDiamondSVG;
+    const sz = store.showroom ? 28 : 20;
+    supplierMarkers.hardscape.push(makeSupplierMarker(store, 'hardscape', fn, '#e91e8c', sz));
+  });
+  document.getElementById('hardscape-count').textContent = `(${HARDSCAPE_STORES.length})`;
+
+  // Floor & Decor - cyan stars (all showrooms)
+  FLOOR_DECOR_STORES.forEach(store => {
+    supplierMarkers.floordecor.push(makeSupplierMarker(store, 'floordecor', makeShowroomSVG, '#00bcd4', 28));
+  });
+  document.getElementById('floordecor-count').textContent = `(${FLOOR_DECOR_STORES.length})`;
+
+  // Horizon Supply - green diamonds
+  HORIZON_STORES.forEach(store => {
+    supplierMarkers.horizon.push(makeSupplierMarker(store, 'horizon', createDiamondSVG, '#4caf50', 20));
+  });
+  document.getElementById('horizon-count').textContent = `(${HORIZON_STORES.length})`;
+
+  // BBQ / Outdoor Living - orange stars (all showrooms)
+  BBQ_STORES.forEach(store => {
+    supplierMarkers.bbq.push(makeSupplierMarker(store, 'bbq', createFireSVG, '#ff6b00', 26));
+  });
+  document.getElementById('bbq-count').textContent = `(${BBQ_STORES.length})`;
+
+  // RWC - light blue diamonds
+  OTHER_STORES.forEach(store => {
+    supplierMarkers.other.push(makeSupplierMarker(store, 'other', createDiamondSVG, '#7ab8ff', 20));
+  });
+  document.getElementById('other-count').textContent = `(${OTHER_STORES.length})`;
+
+  // Nurseries - medium green diamonds
+  NURSERY_STORES.forEach(store => {
+    supplierMarkers.nursery.push(makeSupplierMarker(store, 'nursery', createHerbSVG, '#66bb6a', 22));
+  });
+  document.getElementById('nursery-count').textContent = `(${NURSERY_STORES.length})`;
+
+  // Plumbing & Fixtures - light cyan stars (all showrooms)
+  PLUMBING_STORES.forEach(store => {
+    supplierMarkers.plumbing.push(makeSupplierMarker(store, 'plumbing', makeShowroomSVG, '#80deea', 28));
+  });
+  document.getElementById('plumbing-count').textContent = `(${PLUMBING_STORES.length})`;
+
+  // Pool & Fountain - water blue drop icons
+  POOL_STORES.forEach(store => {
+    const color = store.showroom ? '#00bcd4' : '#29b6f6';
+    supplierMarkers.pool.push(makeSupplierMarker(store, 'pool', createWaterSVG, color, 22));
+  });
+  document.getElementById('pool-count').textContent = `(${POOL_STORES.length})`;
+
+  // Miscellaneous - gold diamonds
+  MISC_STORES.forEach(store => {
+    supplierMarkers.misc.push(makeSupplierMarker(store, 'misc', createDiamondSVG, '#ffd54f', 20));
+  });
+  document.getElementById('misc-count').textContent = `(${MISC_STORES.length})`;
+}
+
+// ─── WEATHER RISK ─────────────────────────────────────────────────────────────
+
+let weatherRiskActive = false;
+let zoneFlashIntervals = {};
+
+function initWeatherRisk() {
+  if (!WEATHER_RISK || !WEATHER_RISK.has_risk) return;
+
+  const risks = WEATHER_RISK.risks || [];
+  if (risks.length === 0) return;
+
+  weatherRiskActive = true;
+
+  const bannerEl = document.getElementById('weather-banner');
+  const bannerText = document.getElementById('banner-text');
+  const riskLabels = risks.map(r => r.label).join(' · ');
+  bannerText.textContent = `Weather Alert: ${riskLabels}`;
+  bannerEl.style.display = 'flex';
+  document.getElementById('filter-toolbar').classList.add('banner-shown');
+
+  const riskPanel = document.getElementById('weather-risk-panel');
+  const riskItems = document.getElementById('weather-risk-items');
+  riskPanel.style.display = 'block';
+  const icons = { wind: '💨', rain: '🌧', special: '⚠️', alert: '🚨' };
+  riskItems.innerHTML = risks.map(r => `<div class="risk-item">${icons[r.type]||'⚠️'} ${r.label}</div>`).join('');
+}
+
+function applyWeatherZoneFlash() {
+  if (!weatherRiskActive) return;
+  Object.keys(ZONES).forEach(zoneName => {
+    const layerId = `zone-fill-${zoneName}`;
+    if (map.getLayer(layerId)) {
+      try {
+        map.setPaintProperty(layerId, 'fill-color', '#e67e22');
+        map.setPaintProperty(layerId, 'fill-opacity', 0.28);
+      } catch(e) {}
+    }
+  });
+}
+
+function stopWeatherFlash() {
+  Object.keys(ZONES).forEach(zoneName => {
+    const layerId = `zone-fill-${zoneName}`;
+    if (map.getLayer(layerId)) {
+      try {
+        map.setPaintProperty(layerId, 'fill-color', ZONES[zoneName].color);
+        map.setPaintProperty(layerId, 'fill-opacity', ZONES[zoneName].opacity);
+      } catch(e) {}
+    }
+  });
+}
+
+// ─── WEATHER TOGGLE ───────────────────────────────────────────────────────────
+
+let weatherOn = false;
+function toggleWeather() {
+  const btn = document.getElementById('btn-radar');
+  weatherOn = !weatherOn;
+  if (weatherOn) {
+    map.setLayoutProperty('weather-layer', 'visibility', 'visible');
+    btn.textContent = 'ON'; btn.classList.add('active');
+  } else {
+    map.setLayoutProperty('weather-layer', 'visibility', 'none');
+    btn.textContent = 'OFF'; btn.classList.remove('active');
+  }
+}
+
+// ─── POPUP BUILDER ───────────────────────────────────────────────────────────
+
+const GHL_LOC = 'T8yugiCGYxTDnfZR9xG6';
+
+function createJTPopup(job) {
+  const status = job.status || 'Sold | Project Intake Phase';
+  const color = getJTColor(status);
+  const zone = getZoneForCoords(job.lon, job.lat);
+  const addr = job.location?.address || 'N/A';
+  const jtLink = `https://app.jobtread.com/jobs/${job.id}`;
+  const ghlLink = job.ghlId
+    ? `https://app.gohighlevel.com/v2/location/${GHL_LOC}/opportunities/list?id=${job.ghlId}`
+    : `https://app.gohighlevel.com/v2/location/${GHL_LOC}/contacts/list`;
+  const isActive = getJTCategory(status) === 'jt-active';
+  const weatherBadge = isActive && weatherRiskActive
+    ? `<div class="weather-risk-badge">⚠️ Weather Risk Today</div>`
+    : '';
+  const statusLabel = status.includes('Active') ? 'Active Production' : 'Sold / Project Intake';
+  const zillowUrl = addr !== 'N/A' ? `https://www.zillow.com/homes/${encodeURIComponent(addr)}_rb/` : null;
+  const assessorUrl = addr !== 'N/A' ? `https://mcassessor.maricopa.gov/mcs/?q=${encodeURIComponent(addr)}` : null;
+  const driveBtn = job.driveUrl ? `<a class="popup-link" href="${job.driveUrl}" target="_blank" style="flex:1;text-align:center;color:#34a853;border-color:rgba(52,168,83,0.3);background:rgba(52,168,83,0.1);">Drive ↗</a>` : '';
+  const extraLinks = (zillowUrl || assessorUrl || driveBtn) ? `
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      ${zillowUrl ? `<a class="popup-link" href="${zillowUrl}" target="_blank" style="flex:1;text-align:center;color:#006aff;border-color:rgba(0,106,255,0.3);background:rgba(0,106,255,0.1);">Zillow →</a>` : ''}
+      ${addr !== 'N/A' ? `<button class="popup-link" onclick="navigator.clipboard.writeText('${addr.replace(/'/g,"\\'")}')
+ .then(()=>{window.open('https://mcassessor.maricopa.gov/','_blank')})" style="flex:1;text-align:center;color:#f39c12;border-color:rgba(243,156,18,0.3);background:rgba(243,156,18,0.1);cursor:pointer;">Assessor →</button>` : ''}
+      ${driveBtn}
+    </div>` : '';
+  return `<div class="popup-inner">
+    <div class="popup-title">${job.name || 'Job'}</div>    ${weatherBadge}
+    <div class="popup-badge" style="background:rgba(${color.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.15);color:${color};border:1px solid rgba(${color.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.3);">${statusLabel}</div>
+    <div class="popup-row">Job #: <span>${job.number || 'N/A'}</span></div>
+    <div class="popup-row">Zone: <span style="color:${ZONES[zone]?.color||'#aaa'};font-weight:700;">${zone}</span></div>
+    <div class="popup-row" style="display:flex;align-items:center;gap:6px;">Address: <span style="flex:1;">${addr}</span><button onclick="navigator.clipboard.writeText('${addr.replace(/'/g,"\\'")}') .then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='📋',1200)})" title="Copy address" style="background:rgba(100,160,255,0.15);border:1px solid rgba(100,160,255,0.3);color:#7ab8ff;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;">📋</button></div>
+    <div style="display:flex;gap:6px;margin-top:10px;">
+      <a class="popup-link" href="${jtLink}" target="_blank" style="flex:1;text-align:center;">JobTread →</a>
+      <a class="popup-link" href="${ghlLink}" target="_blank" style="flex:1;text-align:center;color:#e74c3c;border-color:rgba(231,76,60,0.3);background:rgba(231,76,60,0.1);">GHL →</a>
+    </div>
+    ${extraLinks}
+  </div>`;
+}
+
+function formatApptDate(dateStr) {
+  if (!dateStr) return null;
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { timeZone: 'America/Phoenix', weekday: 'short', month: 'short', day: 'numeric' })
+      + ' at ' + d.toLocaleTimeString('en-US', { timeZone: 'America/Phoenix', hour: 'numeric', minute: '2-digit' });
+  } catch(e) { return dateStr; }
+}
+
+function createGHLPopup(opp) {
+  const color = getGHLColor(opp.stage_name);
+  const zone = getZoneForCoords(opp.lon, opp.lat);
+  const addr = opp.full_address || 'N/A';
+  const ghlLink = `https://app.gohighlevel.com/v2/location/${GHL_LOC}/contacts/detail/${opp.contactId}`;
+  const jtLink = opp.jtUrl || `https://app.jobtread.com/jobs`;
+  const jtMatched = !!(opp.jtUrl);
+  const jtLabel = jtMatched ? `JT: ${opp.jtMatchName || 'Job'} →` : 'JobTread ↗';
+  const isAppt = getGHLCategory(opp.stage_name) === 'ghl-appt';
+  const apptHtml = isAppt && opp.appt_start
+    ? `<div class="popup-row">📅 Appt: <span style="color:#ff6b35;font-weight:600;">${formatApptDate(opp.appt_start)}</span></div>`
+    : '';
+  const zillowUrl = addr !== 'N/A' ? `https://www.zillow.com/homes/${encodeURIComponent(addr)}_rb/` : null;
+  const assessorUrl = addr !== 'N/A' ? `https://mcassessor.maricopa.gov/mcs/?q=${encodeURIComponent(addr)}` : null;  const driveBtn = opp.driveUrl ? `<a class="popup-link" href="${opp.driveUrl}" target="_blank" style="flex:1;text-align:center;color:#34a853;border-color:rgba(52,168,83,0.3);background:rgba(52,168,83,0.1);">Drive ↗</a>` : '';
+  const extraLinks = (zillowUrl || assessorUrl || driveBtn) ? `
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      ${zillowUrl ? `<a class="popup-link" href="${zillowUrl}" target="_blank" style="flex:1;text-align:center;color:#006aff;border-color:rgba(0,106,255,0.3);background:rgba(0,106,255,0.1);">Zillow →</a>` : ''}
+      ${addr !== 'N/A' ? `<button class="popup-link" onclick="navigator.clipboard.writeText('${addr.replace(/'/g,"\\'")}')
+ .then(()=>{window.open('https://mcassessor.maricopa.gov/','_blank')})" style="flex:1;text-align:center;color:#f39c12;border-color:rgba(243,156,18,0.3);background:rgba(243,156,18,0.1);cursor:pointer;">Assessor →</button>` : ''}
+      ${driveBtn}
+    </div>` : '';
+  return `<div class="popup-inner">
+    <div class="popup-title">${opp.name || 'Lead'}</div>
+    <div class="popup-badge" style="background:rgba(255,255,255,0.08);color:${color};border:1px solid rgba(255,255,255,0.15);">${opp.stage_name || 'Unknown'}</div>
+    ${apptHtml}
+    <div class="popup-row">Zone: <span style="color:${ZONES[zone]?.color||'#aaa'};font-weight:700;">${zone}</span></div>
+    <div class="popup-row" style="display:flex;align-items:center;gap:6px;">Address: <span style="flex:1;">${addr}</span><button onclick="navigator.clipboard.writeText('${addr.replace(/'/g,"\\'")}') .then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='📋',1200)})" title="Copy address" style="background:rgba(100,160,255,0.15);border:1px solid rgba(100,160,255,0.3);color:#7ab8ff;border-radius:6px;padding:2px 7px;font-size:11px;cursor:pointer;flex-shrink:0;">📋</button></div>
+    ${opp.monetaryValue ? `<div class="popup-row">Value: <span>$${opp.monetaryValue.toLocaleString()}</span></div>` : ''}
+    <div style="display:flex;gap:6px;margin-top:10px;">
+      <a class="popup-link" href="${ghlLink}" target="_blank" style="flex:1;text-align:center;color:#e74c3c;border-color:rgba(231,76,60,0.3);background:rgba(231,76,60,0.1);">GHL →</a>
+      <a class="popup-link" href="${jtLink}" target="_blank" style="flex:1;text-align:center;${jtMatched ? 'color:#27ae60;border-color:rgba(39,174,96,0.4);background:rgba(39,174,96,0.12);font-weight:700;' : 'opacity:0.5;'}">${jtLabel}</a>
+    </div>
+    ${extraLinks}
+  </div>`;
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+
+function buildDashboard() {
+  const jtCounts = { 'jt-active': 0, 'jt-sold': 0 };
+  JT_JOBS.forEach(j => { const cat = getJTCategory(j.status); jtCounts[cat] = (jtCounts[cat]||0)+1; });
+
+  const ghlCounts = { 'ghl-appt': 0, 'ghl-consult': 0, 'ghl-proposal': 0, 'ghl-permitting': 0 };
+  GHL_OPPS.forEach(o => { const cat = getGHLCategory(o.stage_name); if (cat) ghlCounts[cat] = (ghlCounts[cat]||0)+1; });
+
+  const jtLabels = { 'jt-active': 'Active Production', 'jt-sold': 'Sold / Intake' };
+  const jtColors = { 'jt-active': '#27ae60', 'jt-sold': '#9b59b6' };
+  let jtHtml = '';
+  ['jt-active','jt-sold'].forEach(cat => {
+    if (jtCounts[cat]) jtHtml += `<div class="dash-row"><div class="dash-dot" style="background:${jtColors[cat]}"></div><div class="dash-label">${jtLabels[cat]}</div><div class="dash-count">${jtCounts[cat]}</div></div>`;
+  });
+  document.getElementById('jt-stats').innerHTML = jtHtml || '<div style="font-size:11px;color:rgba(255,255,255,0.3)">No jobs</div>';
+
+  const ghlLabels = { 'ghl-appt': 'Appt Booked', 'ghl-consult': 'Consultation', 'ghl-proposal': 'Proposal', 'ghl-permitting': 'Permitting' };
+  let ghlHtml = '';
+  ['ghl-appt','ghl-consult','ghl-proposal','ghl-permitting'].forEach(cat => {
+    if (ghlCounts[cat] > 0) ghlHtml += `<div class="dash-row"><div class="dash-dot" style="background:${GHL_CATEGORY_COLORS[cat]};transform:rotate(45deg);border-radius:2px;"></div><div class="dash-label" style="font-size:11px;">${ghlLabels[cat]}</div><div class="dash-count">${ghlCounts[cat]}</div></div>`;
+  });
+  document.getElementById('ghl-stats').innerHTML = ghlHtml || '<div style="font-size:11px;color:rgba(255,255,255,0.3)">No leads</div>';
+
+  document.getElementById('total-count').textContent = JT_JOBS.length + GHL_OPPS.length;
+  document.getElementById('update-time').textContent = new Date().toLocaleString('en-US', {timeZone:'America/Phoenix', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+
+  // Update mobile drawer dashboard
+  const mjtEl = document.getElementById('mobile-jt-stats');
+  const mghlEl = document.getElementById('mobile-ghl-stats');
+  const mtotalEl = document.getElementById('mobile-total-count');
+  const mtsEl = document.getElementById('mobile-refresh-ts');
+  if (mjtEl) {
+    let mjtHtml = '';
+    ['jt-active','jt-sold'].forEach(cat => {
+      if (jtCounts[cat]) mjtHtml += `<div class="mobile-dash-row"><div class="mobile-dash-label"><div style="width:10px;height:10px;border-radius:50%;background:${jtColors[cat]};flex-shrink:0;"></div>${jtLabels[cat]}</div><div class="mobile-dash-count">${jtCounts[cat]}</div></div>`;
+    });
+    mjtEl.innerHTML = mjtHtml || '<div style="font-size:11px;color:rgba(255,255,255,0.3)">No jobs</div>';
+  }
+  if (mghlEl) {
+    let mghlHtml = '';
+    ['ghl-appt','ghl-consult','ghl-proposal','ghl-permitting'].forEach(cat => {
+      if (ghlCounts[cat] > 0) mghlHtml += `<div class="mobile-dash-row"><div class="mobile-dash-label"><div style="width:10px;height:10px;transform:rotate(45deg);border-radius:2px;background:${GHL_CATEGORY_COLORS[cat]};flex-shrink:0;"></div>${ghlLabels[cat]}</div><div class="mobile-dash-count">${ghlCounts[cat]}</div></div>`;
+    });
+    mghlEl.innerHTML = mghlHtml || '<div style="font-size:11px;color:rgba(255,255,255,0.3)">No leads</div>';
+  }
+  if (mtotalEl) mtotalEl.textContent = (JT_JOBS.length + GHL_OPPS.length) + ' on map';
+  if (mtsEl) mtsEl.textContent = 'Updated ' + fmtNow();
+}
+
+// ─── MOBILE DRAWER ───────────────────────────────────────────────────────────────────
+
+function toggleMobileDrawer() {
+  const drawer = document.getElementById('mobile-drawer');
+  if (drawer) drawer.classList.toggle('collapsed');
+}
+
+function updateMobileRadarBtn() {
+  const btn = document.getElementById('mobile-btn-radar');
+  if (btn) btn.textContent = weatherOn ? '🌦 Radar: ON' : '🌦 Radar: OFF';
+}
+
+// ─── GLOBAL HOVER LABEL ──────────────────────────────────────────────────────
+let _hoverLabel = null;
+function initHoverLabel() {
+  if (_hoverLabel) return;
+  _hoverLabel = document.createElement('div');
+  _hoverLabel.style.cssText = `position:fixed;z-index:9999;pointer-events:none;background:rgba(10,14,26,0.92);color:#fff;font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;white-space:nowrap;border:1px solid rgba(255,255,255,0.2);opacity:0;transition:opacity 0.12s;transform:translate(-50%, -100%) translateY(-8px);`;
+  document.body.appendChild(_hoverLabel);
+}
+function showLabel(text, pinEl) {
+  if (!_hoverLabel) initHoverLabel();
+  _hoverLabel.textContent = text;
+  const rect = pinEl.getBoundingClientRect();
+  _hoverLabel.style.left = (rect.left + rect.width / 2) + 'px';
+  _hoverLabel.style.top = rect.top + 'px';
+  _hoverLabel.style.opacity = '1';
+}
+function hideLabel() { if (_hoverLabel) _hoverLabel.style.opacity = '0'; }
+
+// ─── MAP LOAD ─────────────────────────────────────────────────────────────────
+
+map.on('load', () => {
+
+  // Add weather layer via OpenWeatherMap precipitation radar (all zoom levels supported)
+  const owmKey = 'e61b4003430c114ca4ddc18c45aca238';
+  const owmTileUrl = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${owmKey}`;
+  map.addSource('weather', { type: 'raster', tiles: [owmTileUrl], tileSize: 256, attribution: '© OpenWeatherMap' });
+  map.addLayer({ id: 'weather-layer', type: 'raster', source: 'weather', layout: { visibility: 'visible' }, paint: { 'raster-opacity': 0.7 } });
+  weatherOn = true;
+  var radarBtnInit = document.getElementById('btn-radar');
+  if (radarBtnInit) { radarBtnInit.textContent = 'ON'; radarBtnInit.classList.add('active'); }
+
+  // Add zone polygons
+  Object.entries(ZONES).forEach(([name, zone]) => {
+    const coords = zone.coords.map(c => c);
+    if (coords[0] !== coords[coords.length-1]) coords.push(coords[0]);
+    map.addSource(`zone-${name}`, { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] }, properties: { name } } });
+    map.addLayer({ id: `zone-fill-${name}`, type: 'fill', source: `zone-${name}`, paint: { 'fill-color': zone.color, 'fill-opacity': zone.opacity } });
+    map.addLayer({ id: `zone-line-${name}`, type: 'line', source: `zone-${name}`, paint: { 'line-color': zone.color, 'line-width': 1.5, 'line-opacity': 0.5 } });
+    const labelAnchor = zone.label_anchor || null;
+    let cx, cy;
+    if (labelAnchor) {
+      cx = labelAnchor[0]; cy = labelAnchor[1];
+    } else {
+      const centroid = coords.reduce((acc, c) => [acc[0]+c[0], acc[1]+c[1]], [0,0]);
+      cx = centroid[0] / coords.length; cy = centroid[1] / coords.length;
+    }
+    map.addSource(`zone-label-${name}`, { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Point', coordinates: [cx, cy] }, properties: { name } } });
+    map.addLayer({ id: `zone-text-${name}`, type: 'symbol', source: `zone-label-${name}`, layout: { 'text-field': name, 'text-size': 11, 'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': false }, paint: { 'text-color': zone.color, 'text-opacity': 0.85, 'text-halo-color': '#000', 'text-halo-width': 1 } });
+  });
+
+  initHoverLabel();
+  _mapLoaded = true;
+
+  // If live data already arrived, render pins now; otherwise fetchLiveData callback handles it
+  if (_dataLoaded) {
+    addJTMarkers();
+    addGHLMarkers();
+    initWeatherRisk();
+    applyWeatherZoneFlash();
+    buildDashboard();
+    searchIndex = buildSearchIndex();
+  }
+
+  initSupplierLayers();
+  document.getElementById('loading').style.display = 'none';
+});
+
+// ─── JT MARKER RENDERER ──────────────────────────────────────────────────────
+
+function addJTMarkers() {
+  JT_JOBS.forEach(job => {
+    if (!job.lat || !job.lon) return;
+    const color = getJTColor(job.status);
+    const category = getJTCategory(job.status);
+    const jobZone = getZoneForCoords(job.lon, job.lat);
+    const isActive = category === 'jt-active';
+
+    const el = document.createElement('div');
+    el.dataset.category = category;
+    el.dataset.zone = jobZone;
+
+    if (isActive && weatherRiskActive) {
+      el.style.cssText = `
+        width:20px;height:20px;border-radius:50%;
+        background:${color};border:2.5px solid rgba(255,255,255,0.9);
+        box-shadow:0 0 8px ${color},0 2px 6px rgba(0,0,0,0.5),0 0 0 4px rgba(231,76,60,0.4);
+        cursor:pointer;transition:box-shadow 0.15s;
+        animation:weatherPulse 1.5s ease-in-out infinite;
+      `;
+    } else {
+      el.style.cssText = `
+        width:16px;height:16px;border-radius:50%;
+        background:${color};border:2.5px solid rgba(255,255,255,0.9);
+        box-shadow:0 0 8px ${color},0 2px 6px rgba(0,0,0,0.5);
+        cursor:pointer;transition:box-shadow 0.15s;
+      `;
+    }
+
+    if (isActive && weatherRiskActive) {
+      const badge = document.createElement('div');
+      badge.style.cssText = `position:absolute;top:-8px;right:-8px;width:14px;height:14px;background:#e74c3c;border-radius:50%;border:2px solid #fff;font-size:8px;display:flex;align-items:center;justify-content:center;pointer-events:none;`;
+      badge.textContent = '!';
+      el.style.position = 'relative';
+      el.appendChild(badge);
+    }
+
+    const displayName = (job.name || 'Job').split(' ').slice(0,2).join(' ');
+    el.addEventListener('mouseenter', () => { showLabel(displayName, el); el.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.6), 0 0 16px ${color}, 0 0 6px ${color}`; });
+    el.addEventListener('mouseleave', () => { hideLabel(); el.style.boxShadow = `0 0 8px ${color}, 0 2px 6px rgba(0,0,0,0.5)`; });
+
+    const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createJTPopup(job));
+    const jtMarker = new mapboxgl.Marker(el).setLngLat([job.lon, job.lat]).setPopup(popup).addTo(map);
+    allMarkers.push({ marker: jtMarker, el, category, source: 'jt', zone: jobZone });
+  });
+}
+
+// ─── GHL MARKER RENDERER ─────────────────────────────────────────────────────
+
+function addGHLMarkers() {
+  const jtGhlIds = new Set(JT_JOBS.map(j => j.ghlId).filter(Boolean));
+  GHL_OPPS.forEach(opp => {
+    if (!opp.lat || !opp.lon) return;
+    const ghlCat = getGHLCategory(opp.stage_name);
+    if (!ghlCat) return;
+    const color = getGHLColor(opp.stage_name);
+    const oppZone = getZoneForCoords(opp.lon, opp.lat);
+    const isAppt = ghlCat === 'ghl-appt';
+
+    const diamond = document.createElement('div');
+    diamond.dataset.category = ghlCat;
+    diamond.dataset.zone = oppZone;
+    diamond.style.cssText = `
+      width:14px;height:14px;
+      background:${color};border:2px solid rgba(255,255,255,0.85);
+      box-shadow:0 0 8px ${color},0 2px 6px rgba(0,0,0,0.5);
+      transform:rotate(45deg);border-radius:1px;
+      cursor:pointer;transition:box-shadow 0.15s;
+    `;
+
+    // For Appt Booked: show name + date on hover
+    const displayName = (opp.name || 'Lead').split(' ').slice(0,2).join(' ');
+    const apptLabel = isAppt && opp.appt_start
+      ? `${displayName} · ${formatApptDate(opp.appt_start)}`
+      : displayName;
+
+    diamond.addEventListener('mouseenter', () => { showLabel(apptLabel, diamond); diamond.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.6), 0 0 16px ${color}, 0 0 6px ${color}`; });
+    diamond.addEventListener('mouseleave', () => { hideLabel(); diamond.style.boxShadow = `0 0 8px ${color}, 0 2px 6px rgba(0,0,0,0.5)`; });
+
+    const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createGHLPopup(opp));
+    const ghlMarker = new mapboxgl.Marker(diamond, { anchor: 'center' }).setLngLat([opp.lon, opp.lat]).setPopup(popup).addTo(map);
+    allMarkers.push({ marker: ghlMarker, el: diamond, category: ghlCat, source: 'ghl', zone: oppZone });
+  });
+}
+
+// ─── FILTER CHIP LOGIC ───────────────────────────────────────────────────────
+
+const allMarkers = [];
+const activeFilters = new Set(['jt-active','jt-sold','ghl-appt','ghl-consult','ghl-proposal','ghl-permitting']);
+
+function toggleChip(category) {
+  const chip = document.getElementById(`chip-${category}`);
+  if (activeFilters.has(category)) {
+    activeFilters.delete(category); chip.classList.remove('active'); chip.classList.add('inactive');
+  } else {
+    activeFilters.add(category); chip.classList.add('active'); chip.classList.remove('inactive');
+  }
+  applyFilters();
+}
+
+function applyFilters() {
+  allMarkers.forEach(({ marker, category, zone }) => {
+    const el = marker.getElement();
+    const catOk = activeFilters.has(category);
+    const zoneOk = activeZones.has(zone || 'Outside Service Area');
+    el.style.display = (catOk && zoneOk) ? '' : 'none';
+  });
+}
+
+const JT_CHIPS = ['jt-active','jt-sold'];
+const GHL_CHIPS = ['ghl-appt','ghl-consult','ghl-proposal','ghl-permitting'];
+
+function masterToggle(group) {
+  const chips = group === 'jt' ? JT_CHIPS : GHL_CHIPS;
+  const btn = document.getElementById(`${group}-master-btn`);
+  const allOn = chips.every(c => activeFilters.has(c));
+  if (allOn) {
+    chips.forEach(c => { activeFilters.delete(c); const chip = document.getElementById(`chip-${c}`); if (chip) { chip.classList.remove('active'); chip.classList.add('inactive'); } });
+    btn.textContent = group === 'jt' ? 'JT ▸' : 'GHL ▸'; btn.style.opacity = '0.45';
+  } else {
+    chips.forEach(c => { activeFilters.add(c); const chip = document.getElementById(`chip-${c}`); if (chip) { chip.classList.add('active'); chip.classList.remove('inactive'); } });
+    btn.textContent = group === 'jt' ? 'JT ▾' : 'GHL ▾'; btn.style.opacity = '1';
+  }
+  applyFilters();
+}
+
+// Add weather pulse animation
+const styleEl = document.createElement('style');
+styleEl.textContent = `
+  @keyframes weatherPulse {
+    0%, 100% { box-shadow: 0 0 8px currentColor, 0 2px 6px rgba(0,0,0,0.5), 0 0 0 4px rgba(231,76,60,0.4); }
+    50% { box-shadow: 0 0 8px currentColor, 0 2px 6px rgba(0,0,0,0.5), 0 0 0 8px rgba(231,76,60,0.15); }
+  }
+  @keyframes crewPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.75; }
+  }
+`;
+document.head.appendChild(styleEl);
+
+// ─── CREW LOCATION LAYER ─────────────────────────────────────────────────────
+
+const CREW_SERVER_URL = REFRESH_SERVER_URL;
+let crewMarkers = [];   // { marker, name }
+let crewLayerOn = false;
+let crewPollInterval = null;
+
+async function fetchCrewLocations() {
+  try {
+    const resp = await fetch(CREW_SERVER_URL + '/crew?t=' + Date.now());
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return data.crew || [];
+  } catch(e) {
+    console.warn('Crew fetch error:', e);
+    return [];
+  }
+}
+
+function renderCrewMarkers(crew) {
+  // Remove old crew markers
+  crewMarkers.forEach(({marker}) => marker.remove());
+  crewMarkers = [];
+
+  const statusEl = document.getElementById('crew-status');
+  if (!crew.length) {
+    if (statusEl) statusEl.textContent = 'No crew online';
+    return;
+  }
+
+  crew.forEach(member => {
+    const { name, lat, lon, color, updated_at } = member;
+    if (!lat || !lon) return;
+
+    // Outer pulsing ring
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:relative;width:28px;height:28px;cursor:pointer;';
+
+    // Pulse ring
+    const ring = document.createElement('div');
+    ring.style.cssText = `
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:28px;height:28px;border-radius:50%;
+      border:2px solid ${color};opacity:0.5;
+      animation:crewPulse 2s ease-in-out infinite;
+    `;
+    wrapper.appendChild(ring);
+
+    // Core dot
+    const dot = document.createElement('div');
+    dot.style.cssText = `
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:16px;height:16px;border-radius:50%;
+      background:${color};border:2.5px solid #fff;
+      box-shadow:0 0 10px ${color},0 2px 6px rgba(0,0,0,0.6);
+    `;
+    wrapper.appendChild(dot);
+
+    // Name label below dot
+    const label = document.createElement('div');
+    label.style.cssText = `
+      position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);
+      background:rgba(0,0,0,0.75);color:#fff;font-size:10px;font-weight:600;
+      padding:1px 5px;border-radius:3px;white-space:nowrap;
+      border:1px solid ${color};pointer-events:none;
+    `;
+    label.textContent = name;
+    wrapper.appendChild(label);
+
+    // Popup with last-seen time
+    const mins = Math.round((Date.now() - new Date(updated_at).getTime()) / 60000);
+    const timeStr = mins < 1 ? 'Just now' : `${mins}m ago`;
+    const popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: '180px' })
+      .setHTML(`
+        <div style="font-family:sans-serif;padding:4px 0;">
+          <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:4px;">👷 ${name}</div>
+          <div style="font-size:11px;color:#aaa;">Last update: <strong style="color:#fff;">${timeStr}</strong></div>
+          <div style="font-size:10px;color:#666;margin-top:4px;">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>
+        </div>
+      `);
+
+    const m = new mapboxgl.Marker(wrapper, { anchor: 'center' })
+      .setLngLat([lon, lat])
+      .setPopup(popup)
+      .addTo(map);
+    crewMarkers.push({ marker: m, name });
+  });
+
+  if (statusEl) statusEl.textContent = `${crew.length} online · updated ${fmtNow()}`;
+}
+
+async function refreshCrewLayer() {
+  if (!crewLayerOn) return;
+  const crew = await fetchCrewLocations();
+  renderCrewMarkers(crew);
+}
+
+function toggleCrewLayer() {
+  const btn = document.getElementById('btn-crew');
+  crewLayerOn = !crewLayerOn;
+  if (crewLayerOn) {
+    btn.textContent = 'ON'; btn.classList.add('active');
+    refreshCrewLayer();
+    crewPollInterval = setInterval(refreshCrewLayer, 5 * 60 * 1000);
+  } else {
+    btn.textContent = 'OFF'; btn.classList.remove('active');
+    crewMarkers.forEach(({marker}) => marker.remove());
+    crewMarkers = [];
+    const statusEl = document.getElementById('crew-status');
+    if (statusEl) statusEl.textContent = 'No crew online';
+    if (crewPollInterval) { clearInterval(crewPollInterval); crewPollInterval = null; }
+  }
+}
+
+</script>
+</body>
+</html>

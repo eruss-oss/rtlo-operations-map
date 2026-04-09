@@ -899,6 +899,11 @@ def main():
             with open(f'{WORK_DIR}/map.html', 'w') as f:
                 f.write(mhtml)
             log('data.json URL injected into map.html')
+            # Also copy to /tmp/map.html so the Flask server can serve it at /
+            map_html_file = os.environ.get('MAP_HTML_FILE', '/tmp/map.html')
+            with open(map_html_file, 'w') as f:
+                f.write(mhtml)
+            log(f'map.html copied to {map_html_file} for server-side serving')
         except Exception as e:
             log(f'Could not inject data URL into map.html: {e}')
 

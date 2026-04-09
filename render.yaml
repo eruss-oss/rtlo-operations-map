@@ -8,7 +8,9 @@ services:
       - key: WORK_DIR
         value: /opt/render/project/src
       - key: CREW_FILE
-        value: /opt/render/project/src/crew_locations.json
+        value: /tmp/crew_locations.json
+      - key: MAP_HTML_FILE
+        value: /tmp/map.html
       - key: CREW_API_KEY
         value: rtlo-crew-2026
       - key: JT_GRANT_KEY
