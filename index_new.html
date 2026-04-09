@@ -509,14 +509,7 @@
       <div class="legend-item"><div style="width:11px;height:11px;background:#f1c40f;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#f1c40f;">Proposal</div></div>
       <div class="legend-item"><div style="width:11px;height:11px;background:#e74c3c;transform:rotate(45deg);border-radius:1px;flex-shrink:0;"></div><div class="legend-label" style="color:#e74c3c;">Permitting</div></div>
     </div>
-    <div class="legend-section">
-      <h4>Service Zones</h4>
-      <div class="legend-item"><div class="legend-zone" style="background:#f1c40f"></div><div class="legend-label">Zone 1 (Core)</div></div>
-      <div class="legend-item"><div class="legend-zone" style="background:#e67e22"></div><div class="legend-label">Zone 2A / 2B</div></div>
-      <div class="legend-item"><div class="legend-zone" style="background:#27ae60"></div><div class="legend-label">Zone 3A / 3B</div></div>
-      <div class="legend-item"><div class="legend-zone" style="background:#2980b9"></div><div class="legend-label">Zone 4A / 4B</div></div>
-      <div class="legend-item"><div class="legend-zone" style="background:#8e44ad"></div><div class="legend-label">Zone 5A / 5B</div></div>
-    </div>
+
   </div>
   </div>
 </div>
@@ -1602,6 +1595,9 @@ map.on('load', () => {
 
   initSupplierLayers();
   document.getElementById('loading').style.display = 'none';
+
+  // Auto-start crew layer ON
+  setTimeout(() => toggleCrewLayer(), 500);
 });
 
 // ─── JT MARKER RENDERER ──────────────────────────────────────────────────────
