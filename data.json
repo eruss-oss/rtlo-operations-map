@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-09T19:00:48.999704",
+  "generated_at": "2026-04-09T21:03:09.203675",
   "jt_jobs": [
     {
       "id": "22PK2vLzgLDC",
@@ -220,7 +220,7 @@
       "lon": -112.406706,
       "full_address": "16111 W Camden Ave, Waddell, AZ, 85355",
       "contactId": "L34kAhNU9to6MQE0j50S",
-      "appt_start": "2026-04-20 08:00:00",
+      "appt_start": "2026-04-20 08:30:00",
       "jtUrl": "https://app.jobtread.com/jobs/22PVAbfvEyWD",
       "jtMatchName": "Cluff | 0057",
       "driveUrl": "https://drive.google.com/drive/folders/15Q6HV8-s8iiUHh8ezGxShLkUVhdXCco8"
@@ -692,9 +692,9 @@
     "risks": [],
     "alerts": [],
     "max_wind_mph": 10,
-    "max_precip_pct": 1,
+    "max_precip_pct": 2,
     "special_conditions": [],
     "has_risk": false,
-    "fetched_at": "2026-04-09T19:00:48.540685"
+    "fetched_at": "2026-04-09T21:03:08.775074"
   }
 }
