@@ -589,6 +589,10 @@
       <div class="supplier-info"><span class="supplier-icon" style="color:#ffd54f;">◆</span><span class="supplier-name">Miscellaneous</span><span class="supplier-count" id="misc-count"></span></div>
       <button class="toggle-btn" id="btn-misc" onclick="toggleSupplier('misc')">OFF</button>
     </div>
+    <div class="supplier-row">
+      <div class="supplier-info"><span class="supplier-icon" style="color:#e31937;">⚡</span><span class="supplier-name">Tesla Supercharger</span><span class="supplier-count" id="tesla-count"></span></div>
+      <button class="toggle-btn" id="btn-tesla" onclick="toggleSupplier('tesla')">OFF</button>
+    </div>
   </div>
 
 </div>
@@ -1041,13 +1045,13 @@ const supplierMarkers = {
   homedepot: [], siteone: [], sprinklerworld: [], ace: [],
   turf: [], rock: [], tile: [], hardscape: [],
   floordecor: [], horizon: [], bbq: [], other: [],
-  nursery: [], plumbing: [], pool: [], misc: []
+  nursery: [], plumbing: [], pool: [], misc: [], tesla: []
 };
 const supplierVisible = {
   homedepot: false, siteone: false, sprinklerworld: false, ace: false,
   turf: false, rock: false, tile: false, hardscape: false,
   floordecor: false, horizon: false, bbq: false, other: false,
-  nursery: false, plumbing: false, pool: false, misc: false
+  nursery: false, plumbing: false, pool: false, misc: false, tesla: false
 };
 
 const TURF_STORES = [{"name": "Synthetic Grass Warehouse - Glendale", "address": "5700 N 101st Ave, Glendale, AZ 85307", "lat": 33.51849, "lng": -112.27754}, {"name": "Synthetic Grass Warehouse - Gilbert", "address": "4465 E Nunneley Rd, Gilbert, AZ 85296", "lat": 33.329907, "lng": -111.694125}, {"name": "Verde Valley Turf - Phoenix", "address": "430 N 47th Ave, Phoenix, AZ 85043", "lat": 33.454108, "lng": -112.161431}, {"name": "Verde Valley Turf - Queen Creek", "address": "18698 E Business Park Dr, Queen Creek, AZ 85142", "lat": 33.280015, "lng": -111.680315}, {"name": "Turf Hub - Chandler", "address": "1725 E Germann Rd, Chandler, AZ 85286", "lat": 33.276423, "lng": -111.813196}, {"name": "Turf Hub - Phoenix", "address": "180 W Pinnacle Peak Rd, Phoenix, AZ 85027", "lat": 33.69934, "lng": -112.077878}, {"name": "Turf Hub - Peoria", "address": "9700 N 91st Ave, Peoria, AZ 85345", "lat": 33.571937, "lng": -112.255798}, {"name": "No Limit Turf - Mesa", "address": "8305 E Sebring Ave, Mesa, AZ 85212", "lat": 33.332864, "lng": -111.654913}, {"name": "Turf Sellers - Phoenix", "address": "405 N 75th Ave, Phoenix, AZ 85043", "lat": 33.454699, "lng": -112.219217}];
@@ -1062,6 +1066,7 @@ const NURSERY_STORES = [{"name": "Whitfill Nursery", "address": "824 E Glendale 
 const PLUMBING_STORES = [{"name": "Studio 44 Design", "address": "8924 E Pinnacle Peak Rd Suite G5, Scottsdale, AZ 85255", "phone": "(602) 309-4161", "website": "studio44design.com", "notes": "High-end curated interior design + plumbing showroom \u2014 Preferred", "showroom": true, "lat": 33.69885, "lon": -111.888321}, {"name": "Kohler Signature Store", "address": "4513 N Scottsdale Rd Suite 116, Scottsdale, AZ 85251", "phone": "(480) 397-2021", "website": "kohler.com", "notes": "Premium Kohler fixtures, Kallista, Robern, Ann Sacks \u2014 Preferred", "showroom": true, "lat": 33.503031, "lon": -111.925723}, {"name": "Ferguson Home - Scottsdale", "address": "15000 N Hayden Rd, Scottsdale, AZ 85260", "phone": "(480) 556-0103", "website": "fergusonhome.com", "notes": "Bath, kitchen & lighting showroom \u2014 Preferred", "showroom": true, "lat": 33.62026, "lon": -111.908088}, {"name": "Ferguson Home - Mesa", "address": "3426 E Baseline Rd, Mesa, AZ 85204", "phone": "(480) 444-5000", "website": "fergusonhome.com", "notes": "Bath, kitchen & lighting showroom \u2014 Preferred", "showroom": true, "lat": 33.381215, "lon": -111.75697}, {"name": "Central Arizona Supply - Scottsdale", "address": "16431 N 90th St, Scottsdale, AZ 85260", "phone": "(480) 922-9191", "website": "centralazsupply.com", "notes": "Contractor plumbing supply + showroom \u2014 Preferred", "showroom": true, "lat": 33.635605, "lon": -111.886546}, {"name": "Facets of Arizona", "address": "9780 W Northern Ave Suite 1120, Peoria, AZ 85345", "phone": "(623) 220-0704", "website": "facetsaz.com", "notes": "Ultra high-end decorative plumbing + hardware showroom \u2014 Specialty", "showroom": true, "lat": 33.552156, "lon": -112.269937}];
 const POOL_STORES = [{"name": "NPT Pool Tile - Mesa", "address": "7307 E Hampton Ave Ste 102, Mesa, AZ 85209", "showroom": true, "notes": "National Pool Tile showroom. Mon-Fri 8am-3:30pm, Sat 8am-12pm. Phone: (480) 520-5242", "water": true, "lat": 33.3784, "lon": -111.7025}, {"name": "NPT Pool Tile - Tempe", "address": "2440 W University Dr, Tempe, AZ 85281", "showroom": true, "notes": "National Pool Tile showroom. Mon-Fri 8am-3:30pm, Sat 8am-12pm. Phone: (480) 968-9929", "water": true, "lat": 33.4226787, "lon": -111.9756007}, {"name": "NPT Pool Tile - West Phoenix", "address": "640 N 43rd Ave #150, Phoenix, AZ 85009", "showroom": true, "notes": "National Pool Tile showroom. Mon-Fri 8am-2:30pm, Sat 7am-11am. Phone: (602) 278-5179", "water": true, "lat": 33.4758, "lon": -112.1327}, {"name": "SCP Distributors - Phoenix", "address": "18201 N 25th Ave, Phoenix, AZ 85023", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.6518801, "lon": -112.1119301}, {"name": "SCP Distributors - Chandler", "address": "261 N Roosevelt Ave, Chandler, AZ 85226", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.3073328, "lon": -111.9512944}, {"name": "SCP Distributors - Gilbert", "address": "560 E Germann Rd, Gilbert, AZ 85297", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.2782585, "lon": -111.7774679}, {"name": "SCP Distributors - Mesa", "address": "2350 W Broadway Rd Ste 110, Mesa, AZ 85202", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.4023, "lon": -111.978}, {"name": "SCP Distributors - Scottsdale", "address": "7841 E Gray Rd Ste A, Scottsdale, AZ 85260", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.5987, "lon": -111.9108}, {"name": "SCP Distributors - Tempe", "address": "8945 S Harl Ave Ste 106, Tempe, AZ 85284", "showroom": false, "notes": "Pool supply wholesale distributor.", "water": true, "lat": 33.3418, "lon": -111.9318}, {"name": "Aquatec Fountains Inc", "address": "13613 N 32nd St, Phoenix, AZ 85032", "showroom": false, "notes": "Fountain contractor and supply. Design, construction, maintenance, repair. Phone: (602) 589-1000", "water": true, "lat": 33.6099989, "lon": -112.0120918}, {"name": "Majestic Water Spouts", "address": "940 S Park Lane Suite 2, Tempe, AZ 85281", "showroom": false, "notes": "Water spouts, scuppers, and pool water features. Custom design available.", "water": true, "lat": 33.4226, "lon": -111.9756}];
 const MISC_STORES = [{"name": "Sonoran Lighting Supply", "address": "2920 E Mohawk Ln Ste 102, Phoenix, AZ 85050", "lat": 33.6738345, "lng": -112.0194569, "showroom": false, "notes": "Lighting wholesale and design center. Outdoor and landscape lighting."}, {"name": "Cholla Tile (Mesa)", "address": "4340 S 80th St, Mesa, AZ 85212", "showroom": true, "notes": "Tile showroom. Phone: (480) 991-1768", "lat": 33.3554803, "lon": -111.6619278}, {"name": "Cholla Tile (Glendale)", "address": "5455 W Montebello Ave, Glendale, AZ 85301", "showroom": true, "notes": "Tile showroom. Phone: (480) 991-1768", "lat": 33.520344, "lon": -112.1766196}, {"name": "Imperial Wholesale", "address": "9602 E Apache Trail, Mesa, AZ 85207", "showroom": true, "notes": "30,000 sq ft showroom. Flooring, countertops, backsplashes. Phone: (480) 986-6900", "lat": 33.416071, "lon": -111.623401}, {"name": "Universal White Cement", "address": "5610 W Maryland Ave, Glendale, AZ 85301", "showroom": false, "notes": "Pool interior supply and distribution. Plaster blending facility.", "lat": 33.532351, "lon": -112.1798496}, {"name": "ANS Mermer", "address": "2850 E Jones Ave, Phoenix, AZ 85040", "showroom": false, "notes": "Closed to public. Visit for samples only. Natural stone and marble supplier.", "lat": 33.4107514, "lon": -112.0200619}];
+const TESLA_STORES = [{"name": "Phoenix - E Camelback Rd", "address": "2502 East Camelback Road, Phoenix, AZ 85016", "stalls": 16, "kw": 72, "lat": 33.510869, "lon": -112.027803}, {"name": "Phoenix - N 19th Ave", "address": "5715 North 19th Avenue, Phoenix, AZ 85015", "stalls": 8, "kw": 150, "lat": 33.520956, "lon": -112.097836}, {"name": "Phoenix - Agua Fria Fwy", "address": "2805 Agua Fria Fwy, Phoenix, AZ 85027", "stalls": 8, "kw": 150, "lat": 33.667546, "lon": -112.120421}, {"name": "Phoenix - W Peoria Ave", "address": "3121 W Peoria Ave, Phoenix, AZ 85029", "stalls": 8, "kw": 150, "lat": 33.581509, "lon": -112.126725}, {"name": "Phoenix - E Mayo Blvd", "address": "7000 E Mayo Blvd, Phoenix, AZ 85054", "stalls": 12, "kw": 250, "lat": 33.655867, "lon": -111.929209}, {"name": "Scottsdale - E Shea Blvd", "address": "8740 East Shea Boulevard, Scottsdale, AZ 85260", "stalls": 8, "kw": 150, "lat": 33.583889, "lon": -111.892855}, {"name": "Scottsdale - N Scottsdale Rd", "address": "15059 N Scottsdale Rd, Scottsdale, AZ 85254", "stalls": 8, "kw": 150, "lat": 33.62326, "lon": -111.923152}, {"name": "Scottsdale - N Kierland Blvd", "address": "15205 North Kierland Boulevard, Scottsdale, AZ 85254", "stalls": 12, "kw": 250, "lat": 33.624646, "lon": -111.930343}, {"name": "Tempe - Arizona Mills", "address": "5000 South Arizona Mills Circle, Tempe, AZ 85282", "stalls": 14, "kw": 250, "lat": 33.383035, "lon": -111.96445}, {"name": "Chandler - W Ray Rd", "address": "3075 W Ray Rd, Chandler, AZ 85226", "stalls": 12, "kw": 250, "lat": 33.31889, "lon": -111.895538}, {"name": "Mesa - S Stapley Dr", "address": "1855 South Stapley Drive, Mesa, AZ 85204", "stalls": 8, "kw": 150, "lat": 33.380788, "lon": -111.806251}, {"name": "Glendale - W Brandon Ln", "address": "6755 West Brandon Lane, Glendale, AZ 85305", "stalls": 8, "kw": 150, "lat": 33.535826, "lon": -112.260501}, {"name": "Buckeye - S Watson Rd", "address": "416 S Watson Rd, Buckeye, AZ 85326", "stalls": 8, "kw": 150, "lat": 33.44326, "lon": -112.55705}, {"name": "New River - W New River Rd", "address": "3906 West New River Road, New River, AZ 85087", "stalls": 8, "kw": 150, "lat": 33.914928, "lon": -112.144238}];
 
 function createStarSVG(color, size) {
   const s = size || 22;
@@ -1116,6 +1121,17 @@ function createWaterSVG(color, size) {
   </svg>`;
 }
 
+function createBoltSVG(color, size) {
+  const s = size || 26;
+  // Lightning bolt / EV charging icon
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.75)" stroke="${color}" stroke-width="1.5"/>
+    <path d="M13 2 L5 13 L11 13 L11 22 L19 11 L13 11 Z"
+      fill="${color}" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"
+      style="filter:drop-shadow(0 0 4px ${color})"/>
+  </svg>`;
+}
+
 function createDiamondSVG(color, size) {
   const s = size || 20;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}">
@@ -1129,12 +1145,14 @@ function createSupplierPopup(store, brand) {
   const colors = {
     homedepot: '#f96302', siteone: '#2ecc71', sprinklerworld: '#3498db', ace: '#e74c3c',
     turf: '#a8e063', rock: '#d4a017', tile: '#9b59b6', hardscape: '#e91e8c',
-    floordecor: '#00bcd4', horizon: '#4caf50', bbq: '#ff9800', other: '#7ab8ff'
+    floordecor: '#00bcd4', horizon: '#4caf50', bbq: '#ff9800', other: '#7ab8ff',
+    tesla: '#e31937'
   };
   const labels = {
     homedepot: 'Home Depot', siteone: 'SiteOne Family', sprinklerworld: 'Sprinkler World', ace: 'Ace Hardware',
     turf: 'Turf Supplier', rock: 'Rock & Aggregate', tile: 'Tile & Stone', hardscape: 'Hardscapes',
-    floordecor: 'Floor & Decor', horizon: 'Horizon Supply', bbq: 'BBQ / Outdoor Living', other: 'RWC'
+    floordecor: 'Floor & Decor', horizon: 'Horizon Supply', bbq: 'BBQ / Outdoor Living', other: 'RWC',
+    tesla: 'Tesla Supercharger'
   };
   const color = colors[brand] || '#fff';
   const label = labels[brand] || brand;
@@ -1312,6 +1330,39 @@ function initSupplierLayers() {
     supplierMarkers.misc.push(makeSupplierMarker(store, 'misc', createDiamondSVG, '#ffd54f', 20));
   });
   document.getElementById('misc-count').textContent = `(${MISC_STORES.length})`;
+
+  // Tesla Superchargers - red bolt icons
+  TESLA_STORES.forEach(store => {
+    supplierMarkers.tesla.push(makeTeslaMarker(store));
+  });
+  document.getElementById('tesla-count').textContent = `(${TESLA_STORES.length})`;
+}
+
+// ─── TESLA SUPERCHARGER MARKER ───────────────────────────────────────────────
+
+function makeTeslaMarker(station) {
+  const color = '#e31937';
+  const el = document.createElement('div');
+  el.style.cssText = `cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 0 5px ${color});transition:filter 0.15s;`;
+  el.innerHTML = createBoltSVG(color, 28);
+  el.addEventListener('mouseenter', () => { el.style.filter = `drop-shadow(0 0 10px ${color}) drop-shadow(0 0 5px #fff)`; showLabel(station.name, el); });
+  el.addEventListener('mouseleave', () => { el.style.filter = `drop-shadow(0 0 5px ${color})`; hideLabel(); });
+
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(station.name + ', ' + station.address)}`;
+  const kwBadge = station.kw >= 250 ? `<span style="color:#e31937;font-weight:700;">V3 · ${station.kw}kW</span>` : `<span style="color:#ff9800;">${station.kw}kW</span>`;
+  const popupHtml = `
+    <div class="popup-inner">
+      <div class="popup-title" style="color:#e31937;">⚡ ${station.name}</div>
+      <div class="popup-badge" style="background:rgba(227,25,55,0.15);color:#e31937;border:1px solid rgba(227,25,55,0.3);">Tesla Supercharger</div>
+      <div class="popup-row">Stalls: <span style="color:#fff;font-weight:600;">${station.stalls}</span></div>
+      <div class="popup-row">Max Power: <span>${kwBadge}</span></div>
+      <div class="popup-row">Address: <span>${station.address}</span></div>
+      <div class="popup-row" style="color:rgba(255,255,255,0.4);font-size:10px;">Open 24/7 · NACS adapter needed for non-Tesla EVs</div>
+      <a class="popup-link" href="${mapsUrl}" target="_blank" style="color:#e31937;border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);">Open in Google Maps →</a>
+    </div>`;
+
+  const popup = new mapboxgl.Popup({ offset: 16, closeButton: true, maxWidth: '260px' }).setHTML(popupHtml);
+  return new mapboxgl.Marker(el).setLngLat([station.lon, station.lat]).setPopup(popup);
 }
 
 // ─── WEATHER RISK ─────────────────────────────────────────────────────────────

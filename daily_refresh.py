@@ -425,6 +425,7 @@ def rebuild_map(jt_jobs, ghl_opps, weather, all_jt_jobs=None):
     plumbing_stores = load_json(f'{WORK_DIR}/plumbing_stores.json')
     pool_stores = load_json(f'{WORK_DIR}/pool_stores.json')
     misc_stores = load_json(f'{WORK_DIR}/misc_stores.json')
+    tesla_stores = load_json(f'{WORK_DIR}/tesla_superchargers.json')
 
     # ─── DRIVE FOLDER INDEX ─────────────────────────────────────────────────
     import subprocess as _sp
@@ -654,6 +655,7 @@ def rebuild_map(jt_jobs, ghl_opps, weather, all_jt_jobs=None):
     html = html.replace('PLUMBING_DATA_PLACEHOLDER', json.dumps(plumbing_stores))
     html = html.replace('POOL_DATA_PLACEHOLDER', json.dumps(pool_stores))
     html = html.replace('MISC_DATA_PLACEHOLDER', json.dumps(misc_stores))
+    html = html.replace('TESLA_DATA_PLACEHOLDER', json.dumps(tesla_stores))
     html = html.replace('WEATHER_RISK_PLACEHOLDER', json.dumps(weather))
 
     with open(f'{WORK_DIR}/map.html', 'w') as f:

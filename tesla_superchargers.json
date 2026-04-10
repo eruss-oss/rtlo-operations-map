@@ -1,0 +1,114 @@
+[
+  {
+    "name": "Phoenix - E Camelback Rd",
+    "address": "2502 East Camelback Road, Phoenix, AZ 85016",
+    "stalls": 16,
+    "kw": 72,
+    "lat": 33.510869,
+    "lon": -112.027803
+  },
+  {
+    "name": "Phoenix - N 19th Ave",
+    "address": "5715 North 19th Avenue, Phoenix, AZ 85015",
+    "stalls": 8,
+    "kw": 150,
+    "lat": 33.520956,
+    "lon": -112.097836
+  },
+  {
+    "name": "Phoenix - Agua Fria Fwy",
+    "address": "2805 Agua Fria Fwy, Phoenix, AZ 85027",
+    "stalls": 8,
+    "kw": 150,
+    "lat": 33.667546,
+    "lon": -112.120421
+  },
+  {
+    "name": "Phoenix - W Peoria Ave",
+    "address": "3121 W Peoria Ave, Phoenix, AZ 85029",
+    "stalls": 8,
+    "kw": 150,
+    "lat": 33.581509,
+    "lon": -112.126725
+  },
+  {
+    "name": "Phoenix - E Mayo Blvd",
+    "address": "7000 E Mayo Blvd, Phoenix, AZ 85054",
+    "stalls": 12,
+    "kw": 250,
+    "lat": 33.655867,
+    "lon": -111.929209
+  },
+  {
+    "name": "Scottsdale - E Shea Blvd",
+    "address": "8740 East Shea Boulevard, Scottsdale, AZ 85260",
+    "stalls": 8,
+    "kw": 150,
+    "lat": 33.583889,
+    "lon": -111.892855
+  },
+  {
+    "name": "Scottsdale - N Scottsdale Rd",
+    "address": "15059 N Scottsdale Rd, Scottsdale, AZ 85254",
+    "stalls": 8,
+    "kw": 150,
+    "lat": 33.62326,
+    "lon": -111.923152
+  },
+  {
+    "name": "Scottsdale - N Kierland Blvd",
+    "address": "15205 North Kierland Boulevard, Scottsdale, AZ 85254",
+    "stalls": 12,
+    "kw": 250,
+    "lat": 33.624646,
+    "lon": -111.930343
+  },
+  {
+    "name": "Tempe - Arizona Mills",
+    "address": "5000 South Arizona Mills Circle, Tempe, AZ 85282",
+    "stalls": 14,
+    "kw": 250,
+    "lat": 33.383035,
+    "lon": -111.96445
+  },
+  {
+    "name": "Chandler - W Ray Rd",
+    "address": "3075 W Ray Rd, Chandler, AZ 85226",
+    "stalls": 12,
+    "kw": 250,
+    "lat": 33.31889,
+    "lon": -111.895538
+  },
+  {
+    "name": "Mesa - S Stapley Dr",
+    "address": "1855 South Stapley Drive, Mesa, AZ 85204",
+    "stalls": 8,
+    "kw": 150,
+    "lat": 33.380788,
+    "lon": -111.806251
+  },
+  {
+    "name": "Glendale - W Brandon Ln",
+    "address": "6755 West Brandon Lane, Glendale, AZ 85305",
+    "stalls": 8,
+    "kw": 150,
+    "lat": 33.535826,
+    "lon": -112.260501
+  },
+  {
+    "name": "Buckeye - S Watson Rd",
+    "address": "416 S Watson Rd, Buckeye, AZ 85326",
+    "stalls": 8,
+    "kw": 150,
+    "lat": 33.44326,
+    "lon": -112.55705
+  },
+  {
+    "name": "New River - W New River Rd",
+    "address": "3906 West New River Road, New River, AZ 85087",
+    "stalls": 8,
+    "kw": 150,
+    "lat": 33.914928,
+    "lon": -112.144238
+  }
+]
