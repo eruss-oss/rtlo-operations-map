@@ -1887,36 +1887,29 @@ function renderCrewMarkers(crew) {
     if (!lat || !lon) return;
     const [px, py] = crewPixelOffsets[idx] || [0, 0];
 
-    // Outer pulsing ring
+    // Static 👷 emoji marker — no animation, no drift
     const wrapper = document.createElement('div');
-    // Use CSS translate for pixel offset — stays fixed in screen space at all zoom levels
-    wrapper.style.cssText = `position:relative;width:28px;height:28px;cursor:pointer;transform:translate(${px}px,${py}px);`;
-
-    // Pulse ring
-    const ring = document.createElement('div');
-    ring.style.cssText = `
-      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-      width:28px;height:28px;border-radius:50%;
-      border:2px solid ${color};opacity:0.5;
-      animation:crewPulse 2s ease-in-out infinite;
+    wrapper.style.cssText = `
+      display:flex;flex-direction:column;align-items:center;
+      cursor:pointer;
+      transform:translate(${px}px,${py}px);
+      user-select:none;
     `;
-    wrapper.appendChild(ring);
 
-    // Core dot
-    const dot = document.createElement('div');
-    dot.style.cssText = `
-      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-      width:16px;height:16px;border-radius:50%;
-      background:${color};border:2.5px solid #fff;
-      box-shadow:0 0 10px ${color},0 2px 6px rgba(0,0,0,0.6);
+    // Emoji icon
+    const icon = document.createElement('div');
+    icon.style.cssText = `
+      font-size:26px;line-height:1;
+      filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));
     `;
-    wrapper.appendChild(dot);
+    icon.textContent = '\uD83D\uDC77';
+    wrapper.appendChild(icon);
 
-    // Name label below dot
+    // Name label below emoji
     const label = document.createElement('div');
     label.style.cssText = `
-      position:absolute;top:calc(100% + 3px);left:50%;transform:translateX(-50%);
-      background:rgba(0,0,0,0.75);color:#fff;font-size:10px;font-weight:600;
+      margin-top:2px;
+      background:rgba(0,0,0,0.75);color:${color};font-size:10px;font-weight:700;
       padding:1px 5px;border-radius:3px;white-space:nowrap;
       border:1px solid ${color};pointer-events:none;
     `;
