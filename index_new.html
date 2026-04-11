@@ -1864,18 +1864,33 @@ function renderCrewMarkers(crew) {
     return;
   }
 
-  const crewOffsets = spiderfyCoords(crew, m => m.lon || 0, m => m.lat || 0);
+  // Group crew by location to compute pixel offsets (zoom-independent)
+  const crewGroups = {};
+  crew.forEach((member, idx) => {
+    const key = `${(member.lon||0).toFixed(4)},${(member.lat||0).toFixed(4)}`;
+    if (!crewGroups[key]) crewGroups[key] = [];
+    crewGroups[key].push(idx);
+  });
+  // Build pixel offset map: index → [px, py]
+  const crewPixelOffsets = {};
+  Object.values(crewGroups).forEach(indices => {
+    if (indices.length <= 1) { crewPixelOffsets[indices[0]] = [0, 0]; return; }
+    const r = 18; // pixels — fixed regardless of zoom
+    indices.forEach((idx, k) => {
+      const angle = (2 * Math.PI * k) / indices.length - Math.PI / 2;
+      crewPixelOffsets[idx] = [Math.round(r * Math.cos(angle)), Math.round(r * Math.sin(angle))];
+    });
+  });
 
   crew.forEach((member, idx) => {
     const { name, lat, lon, color, updated_at } = member;
     if (!lat || !lon) return;
-    const [dLon, dLat] = crewOffsets[idx] || [0, 0];
-    const adjLon = lon + dLon;
-    const adjLat = lat + dLat;
+    const [px, py] = crewPixelOffsets[idx] || [0, 0];
 
     // Outer pulsing ring
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'position:relative;width:28px;height:28px;cursor:pointer;';
+    // Use CSS translate for pixel offset — stays fixed in screen space at all zoom levels
+    wrapper.style.cssText = `position:relative;width:28px;height:28px;cursor:pointer;transform:translate(${px}px,${py}px);`;
 
     // Pulse ring
     const ring = document.createElement('div');
@@ -1921,7 +1936,7 @@ function renderCrewMarkers(crew) {
       `);
 
     const m = new mapboxgl.Marker(wrapper, { anchor: 'center' })
-      .setLngLat([adjLon, adjLat])
+      .setLngLat([lon, lat])  // true GPS coords — pixel offset is on the wrapper element
       .setPopup(popup)
       .addTo(map);
     crewMarkers.push({ marker: m, name });
