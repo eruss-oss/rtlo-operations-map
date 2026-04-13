@@ -1656,27 +1656,22 @@ map.on('load', () => {
 // in a small spiral so they fan out and are individually clickable.
 // Offset radius scales with the number of co-located pins.
 
-function spiderfyCoords(items, getLon, getLat) {
-  // Group items by rounded coordinate key (4 decimal places ≈ 11m precision)
+// Returns pixel offsets [px, py] per item index — zoom-independent, applied via CSS transform
+function spiderfyPixels(items, getLon, getLat, radius) {
+  radius = radius || 16; // screen pixels between overlapping pins
   const groups = {};
   items.forEach((item, i) => {
     const key = `${getLon(item).toFixed(4)},${getLat(item).toFixed(4)}`;
     if (!groups[key]) groups[key] = [];
     groups[key].push(i);
   });
-
-  // Build offset map: index → [dLon, dLat]
   const offsets = {};
   Object.values(groups).forEach(indices => {
-    if (indices.length <= 1) {
-      offsets[indices[0]] = [0, 0];
-      return;
-    }
-    // Fan out in a circle; radius in degrees ≈ 0.00015 per extra pin (≈17m)
-    const r = 0.00015 * Math.ceil(indices.length / 2);
+    if (indices.length <= 1) { offsets[indices[0]] = [0, 0]; return; }
+    const r = radius * Math.ceil(indices.length / 2);
     indices.forEach((idx, k) => {
       const angle = (2 * Math.PI * k) / indices.length - Math.PI / 2;
-      offsets[idx] = [r * Math.cos(angle), r * Math.sin(angle)];
+      offsets[idx] = [Math.round(r * Math.cos(angle)), Math.round(r * Math.sin(angle))];
     });
   });
   return offsets;
@@ -1685,7 +1680,7 @@ function spiderfyCoords(items, getLon, getLat) {
 // ─── JT MARKER RENDERER ──────────────────────────────────────────────────────
 
 function addJTMarkers() {
-  const jtOffsets = spiderfyCoords(JT_JOBS, j => j.lon, j => j.lat);
+  const jtOffsets = spiderfyPixels(JT_JOBS, j => j.lon, j => j.lat);
   JT_JOBS.forEach((job, idx) => {
     if (!job.lat || !job.lon) return;
     const color = getJTColor(job.status);
@@ -1726,9 +1721,11 @@ function addJTMarkers() {
     el.addEventListener('mouseenter', () => { showLabel(displayName, el); el.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.6), 0 0 16px ${color}, 0 0 6px ${color}`; });
     el.addEventListener('mouseleave', () => { hideLabel(); el.style.boxShadow = `0 0 8px ${color}, 0 2px 6px rgba(0,0,0,0.5)`; });
 
-    const [dLon, dLat] = jtOffsets[idx] || [0, 0];
+    const [px, py] = jtOffsets[idx] || [0, 0];
+    // Apply pixel offset via CSS — marker stays anchored to true GPS, offset is screen-space only
+    if (px !== 0 || py !== 0) el.style.transform = (el.style.transform || '') + ` translate(${px}px,${py}px)`;
     const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createJTPopup(job));
-    const jtMarker = new mapboxgl.Marker(el).setLngLat([job.lon + dLon, job.lat + dLat]).setPopup(popup).addTo(map);
+    const jtMarker = new mapboxgl.Marker(el).setLngLat([job.lon, job.lat]).setPopup(popup).addTo(map);
     allMarkers.push({ marker: jtMarker, el, category, source: 'jt', zone: jobZone });
   });
 }
@@ -1742,7 +1739,7 @@ function addGHLMarkers() {
     ...JT_JOBS.map(j => ({ lon: j.lon, lat: j.lat })),
     ...GHL_OPPS.map(o => ({ lon: o.lon, lat: o.lat }))
   ];
-  const allOffsets = spiderfyCoords(allPins, p => p.lon || 0, p => p.lat || 0);
+  const allOffsets = spiderfyPixels(allPins, p => p.lon || 0, p => p.lat || 0);
   const jtCount = JT_JOBS.length;
   GHL_OPPS.forEach((opp, idx) => {
     if (!opp.lat || !opp.lon) return;
@@ -1772,9 +1769,11 @@ function addGHLMarkers() {
     diamond.addEventListener('mouseenter', () => { showLabel(apptLabel, diamond); diamond.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.6), 0 0 16px ${color}, 0 0 6px ${color}`; });
     diamond.addEventListener('mouseleave', () => { hideLabel(); diamond.style.boxShadow = `0 0 8px ${color}, 0 2px 6px rgba(0,0,0,0.5)`; });
 
-    const [dLon, dLat] = allOffsets[jtCount + idx] || [0, 0];
+    const [px, py] = allOffsets[jtCount + idx] || [0, 0];
+    // Apply pixel offset via CSS — stays screen-space, no coordinate drift at any zoom
+    if (px !== 0 || py !== 0) diamond.style.transform = `rotate(45deg) translate(${px}px,${py}px)`;
     const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createGHLPopup(opp));
-    const ghlMarker = new mapboxgl.Marker(diamond, { anchor: 'center' }).setLngLat([opp.lon + dLon, opp.lat + dLat]).setPopup(popup).addTo(map);
+    const ghlMarker = new mapboxgl.Marker(diamond, { anchor: 'center' }).setLngLat([opp.lon, opp.lat]).setPopup(popup).addTo(map);
     allMarkers.push({ marker: ghlMarker, el: diamond, category: ghlCat, source: 'ghl', zone: oppZone });
   });
 }
