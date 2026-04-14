@@ -15,7 +15,7 @@
   },
   {
     "id": "22PSdSi6zvsZ",
-    "name": "Greene",
+    "name": "Greene 651",
     "number": "651",
     "status": "Sold | Project Intake Phase",
     "location": {
@@ -137,6 +137,34 @@
     },
     "lat": 33.376006,
     "lon": -111.518561,
+    "ghlId": ""
+  },
+  {
+    "id": "22PVDvLBsYSa",
+    "name": "Wodiske Warranty",
+    "number": "712",
+    "status": "Active Production Phase",
+    "location": {
+      "id": "22PVDv8rR7eh",
+      "name": "Wodiske Residence",
+      "address": "2451 E Runaway Bay Pl, Gilbert, AZ 85298, USA"
+    },
+    "lat": 33.21561,
+    "lon": -111.736861,
+    "ghlId": ""
+  },
+  {
+    "id": "22PVGG6hvi5U",
+    "name": "Nirschel (Butler)",
+    "number": "713",
+    "status": "Active Production Phase",
+    "location": {
+      "id": "22PVGFB2GRET",
+      "name": "Nirschel Residence",
+      "address": "17946 W Point Loma Dr, Surprise, AZ 85388, USA"
+    },
+    "lat": 33.584161,
+    "lon": -112.445253,
     "ghlId": ""
   }
 ]

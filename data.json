@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-09T21:03:09.203675",
+  "generated_at": "2026-04-13T22:52:13.453687",
   "jt_jobs": [
     {
       "id": "22PK2vLzgLDC",
@@ -184,6 +184,48 @@
   ],
   "ghl_opps": [
     {
+      "id": "4AbIvc9DJEGx4tNb428A",
+      "name": "Rory Lincoln",
+      "stage_name": "Appointment Booked",
+      "monetaryValue": 0,
+      "lat": 33.651747,
+      "lon": -112.019643,
+      "full_address": "2908 E. Villa Rita Dr, Phoenix, AZ, 85032",
+      "contactId": "63lZ4yTOwBHif08sSies",
+      "appt_start": "2026-04-23 09:00:00",
+      "jtUrl": "https://app.jobtread.com/jobs/22PVVfNkg9Ae",
+      "jtMatchName": "Lincoln | 0064",
+      "driveUrl": "https://drive.google.com/drive/folders/1WmG8J3QqpY1joHD3-_qTGyU5Sw6N2EcA"
+    },
+    {
+      "id": "KXx0MFnwGrXwwHn0yi1i",
+      "name": "Derek Schwenk",
+      "stage_name": "Appointment Booked",
+      "monetaryValue": 0,
+      "lat": 33.775712,
+      "lon": -111.950307,
+      "full_address": "32018 N 61st Street, Cave Creek, AZ, 85331",
+      "contactId": "CeogIDCUw7fq2FpBbdvm",
+      "appt_start": "2026-04-13 10:30:00",
+      "jtUrl": "https://app.jobtread.com/jobs/22PVLG2DKrsB",
+      "jtMatchName": "Schwenk | 0063",
+      "driveUrl": "https://drive.google.com/drive/folders/1gLICf079Hpuna3TYr9ZEf_Ugkv3wdwcf"
+    },
+    {
+      "id": "95SGTbMj2tZuoZiQhpGg",
+      "name": "Christopher Stowers",
+      "stage_name": "Appointment Booked",
+      "monetaryValue": 0,
+      "lat": 33.281259,
+      "lon": -111.870796,
+      "full_address": "1651 W. Maplewood St, Chandler, AZ, 85286",
+      "contactId": "iobK6LOZuBNb0yvZvXKh",
+      "appt_start": "2026-04-17 09:00:00",
+      "jtUrl": "https://app.jobtread.com/jobs/22PVHfXdYQ6b",
+      "jtMatchName": "Stowers | 0062",
+      "driveUrl": "https://drive.google.com/drive/folders/1CIDTcMYlOl4FdZn1r6q05wC16IxTBxCE"
+    },
+    {
       "id": "wG1T430a6PhnrHAG0xuX",
       "name": "Melissa Faubel",
       "stage_name": "Appointment Booked",
@@ -214,7 +256,7 @@
     {
       "id": "aUgBXkX7zZMzs0fxrPn8",
       "name": "Ben Cluff",
-      "stage_name": "Appointment Booked",
+      "stage_name": "Consultation Completed",
       "monetaryValue": 50000,
       "lat": 33.577786,
       "lon": -112.406706,
@@ -268,20 +310,6 @@
       "driveUrl": "https://drive.google.com/drive/folders/1xg5UV0fzGmi_mHJ-Tika5qKl-flq7aYK"
     },
     {
-      "id": "zwahjiouOrjzgsAMGBUx",
-      "name": "Milo Iang",
-      "stage_name": "Appointment Booked",
-      "monetaryValue": 30000,
-      "lat": 33.768311,
-      "lon": -112.340271,
-      "full_address": "31453 N 130 Ave, Peoria, AZ, 85283",
-      "contactId": "lsM3W1mkVZ8OHwUo6msA",
-      "appt_start": "2026-04-10 15:00:00",
-      "jtUrl": "https://app.jobtread.com/jobs/22PV3bpTsbKT",
-      "jtMatchName": "Iang",
-      "driveUrl": "https://drive.google.com/drive/folders/1ao6sFzmCQs_x6aYv77hSZgXpqu_PWlcR"
-    },
-    {
       "id": "VOBgi0dAmEwu7gqNH4br",
       "name": "Lindsey Herrick",
       "stage_name": "Appointment Booked",
@@ -324,20 +352,6 @@
       "driveUrl": "https://drive.google.com/drive/folders/1G94G_LGSkFQw0RerNVr9n_YlT_vWn3-J"
     },
     {
-      "id": "H3lxvSU3H9j2RebxRtrO",
-      "name": "Skip Lenfest",
-      "stage_name": "Proposal Sent",
-      "monetaryValue": 100000,
-      "lat": 33.34707,
-      "lon": -111.940872,
-      "full_address": "7854 s Dateland dr , Tempe, 85284",
-      "contactId": "LfsfPjzsYIAKnKSoTne6",
-      "appt_start": "",
-      "jtUrl": "https://app.jobtread.com/jobs/22PUsbaqrX89",
-      "jtMatchName": "Lenfest",
-      "driveUrl": "https://drive.google.com/drive/folders/1R6daCpVXz9HFmuek4cM5WVYgpMf0wOBw"
-    },
-    {
       "id": "IKK7VaxstE7zS5zEMzVt",
       "name": "Dwanyell Thomas",
       "stage_name": "Appointment Booked",
@@ -346,7 +360,7 @@
       "lon": -112.006823,
       "full_address": "3436 E Fairmount Ave , Phoenix , 85018",
       "contactId": "u3Jl881uz5sONx8j2FQl",
-      "appt_start": "2026-04-13 09:00:00",
+      "appt_start": "2026-04-21 10:00:00",
       "jtUrl": "",
       "jtMatchName": "",
       "driveUrl": "https://drive.google.com/drive/folders/1NpV7GjAWbXqEQritGeOJ-pTsUnPsLzZc"
@@ -354,15 +368,15 @@
     {
       "id": "h5EEAC1x2WYLGrCp66Da",
       "name": "Chrissy Stefanowski",
-      "stage_name": "Appointment Booked",
-      "monetaryValue": 25000,
+      "stage_name": "Proposal Sent",
+      "monetaryValue": 72000,
       "lat": 33.33677,
       "lon": -111.917729,
       "full_address": "1402 E Colt, Tempe, AZ, 85284",
       "contactId": "qq6aR633fglK1ESLuDJ0",
       "appt_start": "2026-04-09 15:00:00",
-      "jtUrl": "",
-      "jtMatchName": "",
+      "jtUrl": "https://app.jobtread.com/jobs/22PVLWJ7Db6R",
+      "jtMatchName": "Stefanowski Residence",
       "driveUrl": "https://drive.google.com/drive/folders/1uHf4tX1ycv1olqChAUdt-Jx7rTKeE_vy"
     },
     {
@@ -689,12 +703,24 @@
     }
   ],
   "weather": {
-    "risks": [],
-    "alerts": [],
+    "risks": [
+      {
+        "type": "alert",
+        "label": "Wind Advisory",
+        "severity": "high"
+      }
+    ],
+    "alerts": [
+      {
+        "event": "Wind Advisory",
+        "area": "Northeast Plateaus and Mesas Hwy 264 Northward; Little Colorado River Valley in Coconino County; Little Colorado River Valley in Navajo County; Little Colorado River Valley in Apache County; Western Mogollon Rim; Eastern Mogollon Rim; White Mountains; Black Mesa Area; Northeast Plateaus and Mesas South of Hwy 264",
+        "severity": "Moderate"
+      }
+    ],
     "max_wind_mph": 10,
-    "max_precip_pct": 2,
+    "max_precip_pct": 21,
     "special_conditions": [],
-    "has_risk": false,
-    "fetched_at": "2026-04-09T21:03:08.775074"
+    "has_risk": true,
+    "fetched_at": "2026-04-13T22:52:13.029822"
   }
 }

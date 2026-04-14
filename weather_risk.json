@@ -1,9 +1,21 @@
 {
-  "risks": [],
-  "alerts": [],
-  "max_wind_mph": 5,
-  "max_precip_pct": 0,
+  "risks": [
+    {
+      "type": "alert",
+      "label": "Wind Advisory",
+      "severity": "high"
+    }
+  ],
+  "alerts": [
+    {
+      "event": "Wind Advisory",
+      "area": "Northeast Plateaus and Mesas Hwy 264 Northward; Little Colorado River Valley in Coconino County; Little Colorado River Valley in Navajo County; Little Colorado River Valley in Apache County; Western Mogollon Rim; Eastern Mogollon Rim; White Mountains; Black Mesa Area; Northeast Plateaus and Mesas South of Hwy 264",
+      "severity": "Moderate"
+    }
+  ],
+  "max_wind_mph": 10,
+  "max_precip_pct": 21,
   "special_conditions": [],
-  "has_risk": false,
-  "fetched_at": "2026-04-08T16:13:55.260306"
+  "has_risk": true,
+  "fetched_at": "2026-04-13T22:52:13.029822"
 }

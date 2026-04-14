@@ -1721,10 +1721,9 @@ function addJTMarkers() {
     el.addEventListener('mouseleave', () => { hideLabel(); el.style.boxShadow = `0 0 8px ${color}, 0 2px 6px rgba(0,0,0,0.5)`; });
 
     const [px, py] = jtOffsets[idx] || [0, 0];
-    // Apply pixel offset via CSS — marker stays anchored to true GPS, offset is screen-space only
-    if (px !== 0 || py !== 0) el.style.transform = (el.style.transform || '') + ` translate(${px}px,${py}px)`;
+    // Use Mapbox native offset — stable through zoom changes, never overwritten by Mapbox
     const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createJTPopup(job));
-    const jtMarker = new mapboxgl.Marker(el).setLngLat([job.lon, job.lat]).setPopup(popup).addTo(map);
+    const jtMarker = new mapboxgl.Marker(el, { offset: [px, py] }).setLngLat([job.lon, job.lat]).setPopup(popup).addTo(map);
     allMarkers.push({ marker: jtMarker, el, category, source: 'jt', zone: jobZone });
   });
 }
@@ -1769,10 +1768,9 @@ function addGHLMarkers() {
     diamond.addEventListener('mouseleave', () => { hideLabel(); diamond.style.boxShadow = `0 0 8px ${color}, 0 2px 6px rgba(0,0,0,0.5)`; });
 
     const [px, py] = allOffsets[jtCount + idx] || [0, 0];
-    // Apply pixel offset via CSS — stays screen-space, no coordinate drift at any zoom
-    if (px !== 0 || py !== 0) diamond.style.transform = `rotate(45deg) translate(${px}px,${py}px)`;
+    // Use Mapbox native offset — stable through zoom changes, never overwritten by Mapbox
     const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' }).setHTML(createGHLPopup(opp));
-    const ghlMarker = new mapboxgl.Marker(diamond, { anchor: 'center' }).setLngLat([opp.lon, opp.lat]).setPopup(popup).addTo(map);
+    const ghlMarker = new mapboxgl.Marker(diamond, { anchor: 'center', offset: [px, py] }).setLngLat([opp.lon, opp.lat]).setPopup(popup).addTo(map);
     allMarkers.push({ marker: ghlMarker, el: diamond, category: ghlCat, source: 'ghl', zone: oppZone });
   });
 }
