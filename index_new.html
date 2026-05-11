@@ -247,12 +247,6 @@
     border: 1px solid rgba(100,160,255,0.3); transition: all 0.2s;
   }
   .popup-link:hover { background: rgba(100,160,255,0.35); color: #fff; }
-  .weather-risk-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;
-    background: rgba(231,76,60,0.2); color: #e74c3c; border: 1px solid rgba(231,76,60,0.4);
-    margin-bottom: 6px;
-  }
 
   /* Loading overlay */
   #loading {
@@ -1371,38 +1365,22 @@ let weatherRiskActive = false;
 let zoneFlashIntervals = {};
 
 function initWeatherRisk() {
-  if (!WEATHER_RISK || !WEATHER_RISK.has_risk) return;
-
-  const risks = WEATHER_RISK.risks || [];
-  if (risks.length === 0) return;
-
-  weatherRiskActive = true;
-
+  // Weather pause-risk highlighting is intentionally disabled.
+  // Weather radar remains available, but jobs are no longer singled out
+  // with alert banners, popup badges, zone flashes, or exclamation markers.
+  weatherRiskActive = false;
   const bannerEl = document.getElementById('weather-banner');
-  const bannerText = document.getElementById('banner-text');
-  const riskLabels = risks.map(r => r.label).join(' · ');
-  bannerText.textContent = `Weather Alert: ${riskLabels}`;
-  bannerEl.style.display = 'flex';
-  document.getElementById('filter-toolbar').classList.add('banner-shown');
-
+  if (bannerEl) bannerEl.style.display = 'none';
+  const toolbar = document.getElementById('filter-toolbar');
+  if (toolbar) toolbar.classList.remove('banner-shown');
   const riskPanel = document.getElementById('weather-risk-panel');
-  const riskItems = document.getElementById('weather-risk-items');
-  riskPanel.style.display = 'block';
-  const icons = { wind: '💨', rain: '🌧', special: '⚠️', alert: '🚨' };
-  riskItems.innerHTML = risks.map(r => `<div class="risk-item">${icons[r.type]||'⚠️'} ${r.label}</div>`).join('');
+  if (riskPanel) riskPanel.style.display = 'none';
 }
 
 function applyWeatherZoneFlash() {
-  if (!weatherRiskActive) return;
-  Object.keys(ZONES).forEach(zoneName => {
-    const layerId = `zone-fill-${zoneName}`;
-    if (map.getLayer(layerId)) {
-      try {
-        map.setPaintProperty(layerId, 'fill-color', '#e67e22');
-        map.setPaintProperty(layerId, 'fill-opacity', 0.28);
-      } catch(e) {}
-    }
-  });
+  // Weather risk zone flashing disabled; keep configured zone colors.
+  weatherRiskActive = false;
+  stopWeatherFlash();
 }
 
 function stopWeatherFlash() {
@@ -1445,10 +1423,6 @@ function createJTPopup(job) {
   const ghlLink = job.ghlId
     ? `https://app.gohighlevel.com/v2/location/${GHL_LOC}/opportunities/list?id=${job.ghlId}`
     : `https://app.gohighlevel.com/v2/location/${GHL_LOC}/contacts/list`;
-  const isActive = getJTCategory(status) === 'jt-active';
-  const weatherBadge = isActive && weatherRiskActive
-    ? `<div class="weather-risk-badge">⚠️ Weather Risk Today</div>`
-    : '';
   const statusLabel = status.includes('Active') ? 'Active Production' : 'Sold / Project Intake';
   const zillowUrl = addr !== 'N/A' ? `https://www.zillow.com/homes/${encodeURIComponent(addr)}_rb/` : null;
   const assessorUrl = addr !== 'N/A' ? `https://mcassessor.maricopa.gov/mcs/?q=${encodeURIComponent(addr)}` : null;
@@ -1461,7 +1435,7 @@ function createJTPopup(job) {
       ${driveBtn}
     </div>` : '';
   return `<div class="popup-inner">
-    <div class="popup-title">${job.name || 'Job'}</div>    ${weatherBadge}
+    <div class="popup-title">${job.name || 'Job'}</div>
     <div class="popup-badge" style="background:rgba(${color.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.15);color:${color};border:1px solid rgba(${color.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')},0.3);">${statusLabel}</div>
     <div class="popup-row">Job #: <span>${job.number || 'N/A'}</span></div>
     <div class="popup-row">Zone: <span style="color:${ZONES[zone]?.color||'#aaa'};font-weight:700;">${zone}</span></div>
@@ -1686,35 +1660,16 @@ function addJTMarkers() {
     const color = getJTColor(job.status);
     const category = getJTCategory(job.status);
     const jobZone = getZoneForCoords(job.lon, job.lat);
-    const isActive = category === 'jt-active';
-
     const el = document.createElement('div');
     el.dataset.category = category;
     el.dataset.zone = jobZone;
 
-    if (isActive && weatherRiskActive) {
-      el.style.cssText = `
-        width:20px;height:20px;border-radius:50%;
-        background:${color};border:2.5px solid rgba(255,255,255,0.9);
-        box-shadow:0 0 8px ${color},0 2px 6px rgba(0,0,0,0.5),0 0 0 4px rgba(231,76,60,0.4);
-        cursor:pointer;transition:box-shadow 0.15s;
-      `;
-    } else {
-      el.style.cssText = `
-        width:16px;height:16px;border-radius:50%;
-        background:${color};border:2.5px solid rgba(255,255,255,0.9);
-        box-shadow:0 0 8px ${color},0 2px 6px rgba(0,0,0,0.5);
-        cursor:pointer;transition:box-shadow 0.15s;
-      `;
-    }
-
-    if (isActive && weatherRiskActive) {
-      const badge = document.createElement('div');
-      badge.style.cssText = `position:absolute;top:-8px;right:-8px;width:14px;height:14px;background:#e74c3c;border-radius:50%;border:2px solid #fff;font-size:8px;display:flex;align-items:center;justify-content:center;pointer-events:none;`;
-      badge.textContent = '!';
-      el.style.position = 'relative';
-      el.appendChild(badge);
-    }
+    el.style.cssText = `
+      width:16px;height:16px;border-radius:50%;
+      background:${color};border:2.5px solid rgba(255,255,255,0.9);
+      box-shadow:0 0 8px ${color},0 2px 6px rgba(0,0,0,0.5);
+      cursor:pointer;transition:box-shadow 0.15s;
+    `;
 
     const displayName = (job.name || 'Job').split(' ').slice(0,2).join(' ');
     el.addEventListener('mouseenter', () => { showLabel(displayName, el); el.style.boxShadow = `0 0 0 3px rgba(255,255,255,0.6), 0 0 16px ${color}, 0 0 6px ${color}`; });
@@ -1819,10 +1774,6 @@ function masterToggle(group) {
 // Add weather pulse animation
 const styleEl = document.createElement('style');
 styleEl.textContent = `
-  @keyframes weatherPulse {
-    0%, 100% { box-shadow: 0 0 8px currentColor, 0 2px 6px rgba(0,0,0,0.5), 0 0 0 4px rgba(231,76,60,0.4); }
-    50% { box-shadow: 0 0 8px currentColor, 0 2px 6px rgba(0,0,0,0.5), 0 0 0 8px rgba(231,76,60,0.15); }
-  }
   @keyframes crewPulse {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.25); opacity: 0.75; }
