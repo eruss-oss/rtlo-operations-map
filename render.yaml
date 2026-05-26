@@ -1,9 +1,10 @@
 services:
   - type: web
-    name: rtlo-map-server
+    name: rtlo-operations-map
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn refresh_server:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --keep-alive 5 --preload
+    startCommand: gunicorn refresh_server:app --bind 0.0.0.0:$PORT --workers 1 --timeout 60 --keep-alive 5 --preload
+    healthCheckPath: /healthz
     envVars:
       - key: WORK_DIR
         value: /opt/render/project/src

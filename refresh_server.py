@@ -1,13 +1,19 @@
 #!/usr/bin/env python3.11
 """
 RTLO Map Refresh Server
-- /refresh  : triggers a live data pull (map refresh button)
-- /location : receives crew GPS pings from iOS Shortcuts (every 5 min)
-- /crew     : returns current crew_locations.json for the map to display
-- /health   : health check
+- /         : serves the map HTML directly
+- /refresh  : triggers a live data pull in a BACKGROUND THREAD (never blocks the worker)
+- /location : receives crew GPS pings from iOS Shortcuts
+- /crew     : returns current crew locations for the map
+- /data     : serves data.json directly (avoids CDN CORS issues)
+- /health   : health check (returns 200 immediately)
+- /healthz  : lightweight health check (no file I/O)
 
-Run with: python3 refresh_server.py
-Listens on: 0.0.0.0:5050
+IMPORTANT: daily_refresh.py runs in a background thread so it NEVER blocks
+the gunicorn worker. All web requests are served instantly regardless of
+whether a refresh is in progress.
+
+Run with: gunicorn refresh_server:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --keep-alive 5 --preload
 """
 
 import subprocess
@@ -16,24 +22,24 @@ import time
 import os
 import json
 from flask import Flask, jsonify, request, send_file, Response
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 app = Flask(__name__)
 WORK_DIR = os.environ.get('WORK_DIR', '/home/ubuntu/rtlo-map')
-# Use /tmp for crew file since Render's project dir is read-only on free tier
 CREW_FILE = os.environ.get('CREW_FILE', '/tmp/crew_locations.json')
-# Map HTML is written to /tmp/map.html by the refresh process
 MAP_HTML_FILE = os.environ.get('MAP_HTML_FILE', '/tmp/map.html')
 
-# Prevent concurrent refresh runs
+# ─── Refresh state (background thread) ───────────────────────────────────────
 _refresh_lock = threading.Lock()
+_refresh_running = False
 _last_refresh = 0
-MIN_REFRESH_INTERVAL = 60  # seconds
+_last_refresh_status = None   # 'ok' | 'error'
+_last_refresh_error = None
+MIN_REFRESH_INTERVAL = 60     # seconds between manual refreshes
 
-# Crew location lock for thread-safe file writes
+# ─── Crew location state ──────────────────────────────────────────────────────
 _crew_lock = threading.Lock()
 
-# Crew member colors — assigned by order of first ping, up to 10
 CREW_COLORS = [
     '#FF6B35',  # orange
     '#00D4FF',  # cyan
@@ -47,12 +53,10 @@ CREW_COLORS = [
     '#FF1493',  # deep pink
 ]
 
-# Shared API key for Shortcut authentication (simple bearer token)
-# Employees enter this once when setting up their Shortcut
 CREW_API_KEY = os.environ.get('CREW_API_KEY', 'rtlo-crew-2026')
 
-# On startup, copy map.html from project dir to /tmp so it can be served.
-# This ensures the map is available immediately without waiting for a refresh.
+
+# ─── Startup: copy map.html from project dir to /tmp ─────────────────────────
 def _init_map_html():
     if not os.path.exists(MAP_HTML_FILE):
         src = os.path.join(WORK_DIR, 'map.html')
@@ -63,8 +67,8 @@ def _init_map_html():
 _init_map_html()
 
 
+# ─── Crew helpers ─────────────────────────────────────────────────────────────
 def load_crew():
-    """Load crew_locations.json, return dict keyed by employee name."""
     try:
         if os.path.exists(CREW_FILE):
             with open(CREW_FILE) as f:
@@ -75,13 +79,11 @@ def load_crew():
 
 
 def save_crew(crew):
-    """Save crew dict to crew_locations.json."""
     with open(CREW_FILE, 'w') as f:
         json.dump(crew, f, indent=2)
 
 
 def assign_color(name, crew):
-    """Assign a consistent color to a crew member based on their position in the roster."""
     names = sorted(crew.keys())
     if name not in names:
         names.append(name)
@@ -89,87 +91,107 @@ def assign_color(name, crew):
     return CREW_COLORS[idx]
 
 
-def run_refresh():
-    """Run daily_refresh.py and return the new data.json CDN URL."""
+# ─── Background refresh ───────────────────────────────────────────────────────
+def _run_refresh_background():
+    """
+    Run daily_refresh.py in a background thread.
+    Never called directly from a request handler — always via threading.Thread.
+    This ensures the gunicorn worker is NEVER blocked.
+    """
+    global _refresh_running, _last_refresh_status, _last_refresh_error
     try:
         result = subprocess.run(
             ['python3', f'{WORK_DIR}/daily_refresh.py'],
-            capture_output=True, text=True, timeout=300,
+            capture_output=True, text=True,
+            timeout=600,   # 10 min hard limit — background, so no worker impact
             cwd=WORK_DIR
         )
-        for line in result.stdout.splitlines():
-            if 'data.json uploaded:' in line:
-                url = line.split('data.json uploaded:')[-1].strip()
-                return url, None
-        if result.returncode != 0:
-            return None, result.stderr[-500:] if result.stderr else 'Unknown error'
-        url_file = f'{WORK_DIR}/data_cdn_url.txt'
-        if os.path.exists(url_file):
-            with open(url_file) as f:
-                return f.read().strip(), None
-        return None, 'Could not extract CDN URL from output'
+        if result.returncode == 0:
+            _last_refresh_status = 'ok'
+            _last_refresh_error = None
+        else:
+            _last_refresh_status = 'error'
+            _last_refresh_error = (result.stderr or 'Unknown error')[-500:]
     except subprocess.TimeoutExpired:
-        return None, 'Refresh timed out after 5 minutes'
+        _last_refresh_status = 'error'
+        _last_refresh_error = 'Refresh timed out after 10 minutes'
     except Exception as e:
-        return None, str(e)
+        _last_refresh_status = 'error'
+        _last_refresh_error = str(e)
+    finally:
+        _refresh_running = False
+        _refresh_lock.release()
+
+
+# ─── Routes ───────────────────────────────────────────────────────────────────
+
+@app.route('/healthz', methods=['GET'])
+def healthz():
+    """Lightweight health check — no file I/O, always instant."""
+    return 'OK', 200
+
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({
+        'status': 'ok',
+        'time': datetime.now().isoformat(),
+        'refresh_running': _refresh_running,
+        'last_refresh_status': _last_refresh_status,
+    })
 
 
 @app.route('/refresh', methods=['GET', 'POST'])
 def refresh():
-    global _last_refresh
+    """
+    Trigger a data refresh. Returns immediately — refresh runs in background.
+    The map auto-reloads data when the refresh completes.
+    """
+    global _refresh_running, _last_refresh
+
     now = time.time()
 
+    if _refresh_running:
+        return jsonify({
+            'status': 'busy',
+            'message': 'A refresh is already in progress. Check back in a few minutes.'
+        }), 429
+
+    if now - _last_refresh < MIN_REFRESH_INTERVAL:
+        wait = int(MIN_REFRESH_INTERVAL - (now - _last_refresh))
+        return jsonify({
+            'status': 'throttled',
+            'message': f'Refreshed too recently. Try again in {wait}s.'
+        }), 429
+
+    # Try to acquire the lock non-blocking
     if not _refresh_lock.acquire(blocking=False):
         return jsonify({
             'status': 'busy',
-            'message': 'A refresh is already in progress. Please wait.'
+            'message': 'Refresh lock held. Try again shortly.'
         }), 429
 
-    try:
-        if now - _last_refresh < MIN_REFRESH_INTERVAL:
-            wait = int(MIN_REFRESH_INTERVAL - (now - _last_refresh))
-            return jsonify({
-                'status': 'throttled',
-                'message': f'Refreshed too recently. Try again in {wait}s.'
-            }), 429
+    _refresh_running = True
+    _last_refresh = now
 
-        _last_refresh = now
-        url, error = run_refresh()
+    # Fire and forget — background thread, worker stays free
+    t = threading.Thread(target=_run_refresh_background, daemon=True)
+    t.start()
 
-        if url:
-            return jsonify({
-                'status': 'ok',
-                'data_url': url,
-                'refreshed_at': datetime.now().isoformat()
-            })
-        else:
-            return jsonify({
-                'status': 'error',
-                'message': error or 'Refresh failed'
-            }), 500
-    finally:
-        _refresh_lock.release()
+    return jsonify({
+        'status': 'started',
+        'message': 'Refresh started in background. Map data will update in ~3 minutes.'
+    })
 
 
 @app.route('/location', methods=['POST'])
 def location():
     """
     Receive a crew member's GPS location from their iOS Shortcut.
-
-    Expected JSON body:
-    {
-        "name": "Eric",          # employee first name
-        "lat": 33.4484,          # latitude
-        "lon": -112.0740,        # longitude
-        "api_key": "rtlo-crew-2026"  # shared auth key
-    }
-
-    Returns:
-    { "status": "ok", "color": "#FF6B35" }
+    Expected JSON: { "name": "Eric", "lat": 33.4484, "lon": -112.0740, "api_key": "rtlo-crew-2026" }
     """
     data = request.get_json(silent=True) or {}
 
-    # Auth check
     if data.get('api_key') != CREW_API_KEY:
         return jsonify({'status': 'error', 'message': 'Invalid API key'}), 401
 
@@ -188,7 +210,7 @@ def location():
     except (TypeError, ValueError):
         return jsonify({'status': 'error', 'message': 'lat/lon must be numbers'}), 400
 
-    # Sanity check — must be in Arizona-ish area (loose bounds)
+    # Sanity check — must be in Arizona-ish area
     if not (30.0 <= lat <= 38.0 and -115.0 <= lon <= -108.0):
         return jsonify({'status': 'error', 'message': 'Coordinates out of expected range'}), 400
 
@@ -210,11 +232,7 @@ def location():
 
 @app.route('/location', methods=['DELETE'])
 def location_off():
-    """
-    Employee turns off their location sharing.
-    Body: { "name": "Eric", "api_key": "rtlo-crew-2026" }
-    Sets active: false so they disappear from the map.
-    """
+    """Employee turns off location sharing."""
     data = request.get_json(silent=True) or {}
 
     if data.get('api_key') != CREW_API_KEY:
@@ -235,11 +253,7 @@ def location_off():
 
 @app.route('/crew', methods=['GET'])
 def crew():
-    """
-    Return current crew locations for the map to display.
-    Only returns active members (active: true) updated in the last 30 minutes.
-    """
-    from datetime import timedelta
+    """Return active crew members updated in the last 30 minutes."""
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(minutes=30)
 
@@ -253,7 +267,7 @@ def crew():
             if updated.tzinfo is None:
                 updated = updated.replace(tzinfo=timezone.utc)
             if updated < cutoff:
-                continue  # stale — phone off or app paused
+                continue
         except Exception:
             continue
         active.append(member)
@@ -263,7 +277,7 @@ def crew():
 
 @app.route('/data', methods=['GET'])
 def data():
-    """Serve the current data.json directly — avoids CDN CORS issues."""
+    """Serve data.json directly — avoids CDN CORS issues."""
     data_file = os.path.join(WORK_DIR, 'data.json')
     if os.path.exists(data_file):
         resp = send_file(data_file, mimetype='application/json')
@@ -275,11 +289,10 @@ def data():
 
 @app.route('/', methods=['GET'])
 def index():
-    """Serve the map HTML directly at the root URL."""
+    """Serve the map HTML at the root URL."""
     if os.path.exists(MAP_HTML_FILE):
         return send_file(MAP_HTML_FILE, mimetype='text/html')
-    # Fallback: redirect to CDN version if map.html hasn't been built yet
-    cdn_url_file = os.path.join(WORK_DIR, 'data_cdn_url.txt')
+    # Fallback redirect if map.html hasn't been built yet
     fallback = 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663500405152/WGBQHqsgTnoVcsDn.html'
     return Response(
         f'<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url={fallback}">'
@@ -288,11 +301,6 @@ def index():
         f'</body></html>',
         mimetype='text/html'
     )
-
-
-@app.route('/health', methods=['GET'])
-def health():
-    return jsonify({'status': 'ok', 'time': datetime.now().isoformat()})
 
 
 if __name__ == '__main__':
