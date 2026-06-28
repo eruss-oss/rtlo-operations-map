@@ -32,7 +32,10 @@ The shaded polygons across the map represent our nine service zones (Z1 through 
 
 ### Crew Locations
 
-When crew members have their iOS tracking Shortcut enabled, their live locations appear on the map as colored dots with their names. You can toggle the crew layer on or off from the left sidebar.
+When crew members have their iOS tracking Shortcut enabled, their live locations appear on the map as colored dots with their names. You can toggle the crew layer on or off from the left sidebar. 
+
+**Note on Crew Setup:** 
+All crew members must use the exact API key `rtlo-crew-2026` in their iOS Shortcut. If this key is ever rotated in the system, every crew member must update their Shortcut before the system redeploys, or their location tracking will break.
 
 ---
 
@@ -78,8 +81,20 @@ The right-hand panel lists all supplier categories. Each is **OFF by default** t
 | 💧 Water Drop | **Pool & Fountain supplier** |
 | 🌿 Leaf | **Nursery** |
 | 🔥 Fire | **BBQ / Outdoor Living** |
+| ⚡ Bolt | **Tesla Superchargers** |
 
 **All ON / All OFF** buttons at the top of the panel toggle every supplier layer at once.
+
+---
+
+## System Architecture & Maintenance 
+
+For administrators handling the backend infrastructure:
+
+- **Repository:** The code lives at `eruss-oss/rtlo-operations-map`. The repository is set to public to ensure free and unlimited GitHub Actions minutes.
+- **Data Refresh:** Handled by `map-refresh.yml` GitHub Actions workflow.
+- **Server Health:** The map is hosted on a Render server. A keep-alive GitHub Actions workflow pings the `/healthz` endpoint every 14 minutes to prevent the free tier server from sleeping.
+- **Environment Variables:** Secrets like `JT_GRANT_KEY`, `GHL_PIT`, and `OWM_API_KEY` are stored securely in Render environment variables and GitHub Secrets, not in the codebase.
 
 ---
 *Questions? Contact Eric Russell — eruss@rtloaz.com*
