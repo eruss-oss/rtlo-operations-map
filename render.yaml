@@ -13,7 +13,7 @@ services:
       - key: MAP_HTML_FILE
         value: /tmp/map.html
       - key: CREW_API_KEY
-        value: rtlo-crew-6111e4f8444bbe05
+        value: rtlo-crew-2026
       - key: JT_GRANT_KEY
         sync: false
       - key: JT_ORG_ID
